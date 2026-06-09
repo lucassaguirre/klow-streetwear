@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 
 // ─── Constants ───────────────────────────────────────────────────
-const DEF_SETTINGS = { whatsapp: '5491165830511', password: 'klow2024' }
+const DEF_SETTINGS = { whatsapp: '5491165830511' }
 
 const CSS = `
 .header{position:sticky;top:0;z-index:100;background:rgba(10,10,10,.96);backdrop-filter:blur(16px);border-bottom:1px solid #181818}
@@ -142,10 +142,16 @@ const CSS = `
 function uid() { return Math.random().toString(36).slice(2, 9) }
 function blank() { return { name: '', brand: '', price: '', sizes: '', stock: '1', image: '', category: 'ropa', description: '' } }
 
-function ls(k) { try { return JSON.parse(localStorage.getItem(k)) } catch { return null } }
-function lss(k, v) {
-  try { localStorage.setItem(k, JSON.stringify(v)) }
-  catch { alert('Almacenamiento lleno. Eliminá alguna imagen para continuar.') }
+async function api(path, opts = {}) {
+  const res = await fetch(`/api/${path}`, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error || `API error ${res.status}`)
+  }
+  return res.json()
 }
 
 async function compressImg(file) {
@@ -208,11 +214,11 @@ export default function App() {
     return () => el.remove()
   }, [])
 
-  // Load data from localStorage
+  // Load data from the API (Postgres via Vercel/Neon)
   useEffect(() => {
-    const p = ls('klow_prods'); if (p) setProds(p)
-    const s = ls('klow_socials'); if (s) setSocials(s)
-    const st = ls('klow_sett'); if (st) setSett(x => ({ ...x, ...st }))
+    api('products').then(setProds).catch(() => {})
+    api('socials').then(setSocials).catch(() => {})
+    api('settings').then(s => setSett(x => ({ ...x, ...s }))).catch(() => {})
     fetchBlue()
     const iv = setInterval(fetchBlue, 5 * 60 * 1000)
     return () => clearInterval(iv)
@@ -240,13 +246,16 @@ export default function App() {
     } catch {}
   }
 
-  const saveProds = n => { setProds(n); lss('klow_prods', n) }
-  const saveSocs = n => { setSocials(n); lss('klow_socials', n) }
-  const saveSett = n => { setSett(n); lss('klow_sett', n) }
+  // (Lectura/escritura ahora se hace directo contra /api en cada acción)
 
-  const login = () => {
-    if (pass === sett.password) { setIsAdm(true); setView('admin'); setPass(''); setPassErr(false) }
-    else setPassErr(true)
+  const login = async () => {
+    try {
+      const r = await api('login', { method: 'POST', body: JSON.stringify({ password: pass }) })
+      if (r.ok) { setIsAdm(true); setView('admin'); setPass(''); setPassErr(false) }
+      else setPassErr(true)
+    } catch {
+      setPassErr(true)
+    }
   }
 
   const toARS = usd => blue ? '$ ' + Math.round(Number(usd) * blue).toLocaleString('es-AR') : '—'
@@ -266,26 +275,53 @@ export default function App() {
     setPForm(f => ({ ...f, image: b64 }))
   }
 
-  const savePF = () => {
+  const savePF = async () => {
     if (!pForm.name || !pForm.price) return
-    const id = editId || uid()
-    const next = editId
-      ? prods.map(p => p.id === editId ? { ...pForm, id } : p)
-      : [...prods, { ...pForm, id }]
-    saveProds(next); setShowPF(false)
+    try {
+      if (editId) {
+        await api(`products?id=${editId}`, { method: 'PUT', body: JSON.stringify(pForm) })
+        setProds(prods.map(p => p.id === editId ? { ...pForm, id: editId } : p))
+      } else {
+        const created = await api('products', { method: 'POST', body: JSON.stringify(pForm) })
+        setProds([created, ...prods])
+      }
+      setShowPF(false)
+    } catch {
+      alert('No se pudo guardar el producto. Probá de nuevo.')
+    }
   }
 
-  const delP = id => { if (!confirm('¿Eliminar producto?')) return; saveProds(prods.filter(p => p.id !== id)) }
+  const delP = async id => {
+    if (!confirm('¿Eliminar producto?')) return
+    try {
+      await api(`products?id=${id}`, { method: 'DELETE' })
+      setProds(prods.filter(p => p.id !== id))
+    } catch {
+      alert('No se pudo eliminar el producto.')
+    }
+  }
 
-  const addSoc = () => {
+  const addSoc = async () => {
     const parsed = parseSocial(socUrl)
     if (!parsed) { setSocErr('URL no reconocida. Pegá un link de TikTok o Instagram Reel.'); return }
     if (socials.find(s => s.id === parsed.id)) { setSocErr('Ya existe ese video.'); return }
-    saveSocs([...socials, { ...parsed, uid: uid() }])
-    setSocUrl(''); setSocErr('')
+    try {
+      const created = await api('socials', { method: 'POST', body: JSON.stringify(parsed) })
+      setSocials([...socials, created])
+      setSocUrl(''); setSocErr('')
+    } catch {
+      setSocErr('No se pudo agregar. Probá de nuevo.')
+    }
   }
 
-  const delSoc = u => saveSocs(socials.filter(s => s.uid !== u))
+  const delSoc = async u => {
+    try {
+      await api(`socials?uid=${u}`, { method: 'DELETE' })
+      setSocials(socials.filter(s => s.uid !== u))
+    } catch {
+      alert('No se pudo borrar.')
+    }
+  }
   const vis = cat === 'all' ? prods : prods.filter(p => p.category === cat)
   const inStock = p => Number(p.stock) > 0
 
@@ -451,7 +487,7 @@ export default function App() {
           <div className="admin-hd">
             <h2 className="admin-t">Panel de administración</h2>
             <div className="admin-acts">
-              <button className="btn-set" onClick={() => setSettF({ ...sett })}>⚙ Config</button>
+              <button className="btn-set" onClick={() => setSettF({ whatsapp: sett.whatsapp, currentPassword: '', newPassword: '' })}>⚙ Config</button>
               {tab === 'prods' && <button className="btn-pri" onClick={openAdd}>+ Producto</button>}
             </div>
           </div>
@@ -588,13 +624,27 @@ export default function App() {
                 <small>54 + código de área sin 0 + número sin 15. Ej: 5491165830511</small>
               </label>
               <label className="full">
-                Nueva contraseña
-                <input type="password" value={settF.password} onChange={e => setSettF(s => ({ ...s, password: e.target.value }))} placeholder="Nueva contraseña..." />
+                Contraseña actual *
+                <input type="password" value={settF.currentPassword} onChange={e => setSettF(s => ({ ...s, currentPassword: e.target.value }))} placeholder="Para confirmar los cambios" />
+                <small>Necesaria para guardar cualquier cambio acá</small>
+              </label>
+              <label className="full">
+                Nueva contraseña (opcional)
+                <input type="password" value={settF.newPassword} onChange={e => setSettF(s => ({ ...s, newPassword: e.target.value }))} placeholder="Dejar vacío para no cambiarla" />
               </label>
             </div>
             <div className="modal-btns">
               <button className="btn-gho" onClick={() => setSettF(null)}>Cancelar</button>
-              <button className="btn-pri" onClick={() => { saveSett(settF); setSettF(null) }}>Guardar</button>
+              <button className="btn-pri" onClick={async () => {
+                if (!settF.currentPassword) { alert('Ingresá la contraseña actual.'); return }
+                try {
+                  await api('settings', { method: 'PUT', body: JSON.stringify(settF) })
+                  setSett(s => ({ ...s, whatsapp: settF.whatsapp }))
+                  setSettF(null)
+                } catch (err) {
+                  alert(err.message === 'Contraseña actual incorrecta' ? 'Contraseña actual incorrecta.' : 'No se pudo guardar.')
+                }
+              }}>Guardar</button>
             </div>
           </div>
         </div>

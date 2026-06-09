@@ -14,8 +14,22 @@ if (!connectionString) {
   console.warn('⚠️  No se encontró la variable de conexión a Postgres. Conectá la integración de Supabase en Vercel → Storage.')
 }
 
+function cleanConnectionString(str) {
+  if (!str) return str
+  try {
+    const url = new URL(str)
+    // Quitamos sslmode del connection string: lo manejamos nosotros
+    // explícitamente vía la opción `ssl` de pg, para evitar el error
+    // "self-signed certificate in certificate chain" con Supabase.
+    url.searchParams.delete('sslmode')
+    return url.toString()
+  } catch {
+    return str
+  }
+}
+
 const pool = new Pool({
-  connectionString,
+  connectionString: cleanConnectionString(connectionString),
   ssl: { rejectUnauthorized: false },
 })
 

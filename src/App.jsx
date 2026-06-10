@@ -42,7 +42,7 @@ const CSS = `
 .f-btn:hover{border-color:#444;color:#888}
 .f-btn.on{border-color:#fff;color:#fff}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:14px}
-.card{background:#0F0F0F;border:1px solid #181818;border-radius:8px;overflow:hidden;transition:border-color .2s,transform .2s}
+.card{background:#0F0F0F;border:1px solid #181818;border-radius:8px;overflow:hidden;transition:border-color .2s,transform .2s;cursor:pointer}
 .card:hover{border-color:#2A2A2A;transform:translateY(-2px)}
 .card-img-w{position:relative;aspect-ratio:1/1;background:#141414;overflow:hidden}
 .card-img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
@@ -113,6 +113,7 @@ const CSS = `
 .fg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .fg label{display:flex;flex-direction:column;gap:5px;font-size:9px;letter-spacing:1.5px;color:#3A3A3A;font-family:'DM Mono',monospace;text-transform:uppercase}
 .fg label.full{grid-column:1/-1}
+.fg .field-box{display:flex;flex-direction:column;gap:5px;font-size:9px;letter-spacing:1.5px;color:#3A3A3A;font-family:'DM Mono',monospace;text-transform:uppercase;grid-column:1/-1}
 .fg input,.fg select,.fg textarea{background:#0A0A0A;border:1px solid #1A1A1A;color:#EDEDEC;padding:8px 10px;border-radius:5px;font-size:13px;font-family:'Inter',sans-serif;outline:none;transition:border-color .15s}
 .fg input:focus,.fg select:focus,.fg textarea:focus{border-color:#fff}
 .fg select option{background:#141414}
@@ -135,12 +136,51 @@ const CSS = `
   .admin{padding:18px 14px 44px}
   .feats-in{padding:18px 14px;gap:14px}
   .reels-in{padding:0 14px}
+  .pdp{grid-template-columns:1fr;padding:20px 14px 48px}
 }
+
+/* ── Product detail page ── */
+.pdp{max-width:1100px;margin:0 auto;padding:32px 20px 64px;display:grid;grid-template-columns:1.1fr 1fr;gap:36px}
+.pdp-back{background:none;border:1px solid #1C1C1C;color:#555;padding:7px 14px;border-radius:5px;cursor:pointer;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:1px;margin-bottom:22px;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.pdp-back:hover{border-color:#555;color:#EDEDEC}
+.pdp-gallery{display:flex;flex-direction:column;gap:10px}
+.pdp-main{position:relative;aspect-ratio:1/1;background:#0F0F0F;border:1px solid #181818;border-radius:10px;overflow:hidden}
+.pdp-main img{width:100%;height:100%;object-fit:cover;display:block}
+.pdp-main .card-ph{font-size:12px}
+.pdp-thumbs{display:flex;gap:8px;flex-wrap:wrap}
+.pdp-thumb{width:64px;height:64px;border-radius:6px;overflow:hidden;border:1px solid #1C1C1C;cursor:pointer;background:#0F0F0F;flex-shrink:0;transition:border-color .15s;padding:0}
+.pdp-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.pdp-thumb.on{border-color:#fff}
+.pdp-info{display:flex;flex-direction:column}
+.pdp-brand{font-size:11px;letter-spacing:3px;color:#444;font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:8px}
+.pdp-name{font-size:28px;font-weight:600;letter-spacing:-.5px;color:#EDEDEC;margin-bottom:14px;line-height:1.2}
+.pdp-prices{display:flex;flex-direction:column;gap:2px;margin-bottom:18px}
+.pdp-usd{font-family:'DM Mono',monospace;font-size:28px;font-weight:500;color:#F5C800}
+.pdp-ars{font-family:'DM Mono',monospace;font-size:14px;color:#444}
+.pdp-stock{display:inline-block;align-self:flex-start;padding:4px 10px;border-radius:4px;font-size:10px;font-weight:600;letter-spacing:1.5px;font-family:'DM Mono',monospace;margin-bottom:18px}
+.pdp-desc{font-size:14px;color:#666;line-height:1.7;margin-bottom:22px;white-space:pre-wrap}
+.pdp-sizes-label{font-size:10px;letter-spacing:2px;color:#444;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:10px}
+.pdp-sizes{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px}
+.size-tag{border:1px solid #2A2A2A;color:#ccc;padding:7px 16px;border-radius:5px;font-size:13px;font-family:'Inter',sans-serif}
+.pdp-actions{margin-top:auto;display:flex;flex-direction:column;gap:10px}
+.shipping-banner{display:flex;align-items:center;gap:10px;background:rgba(61,255,143,.06);border:1px solid rgba(61,255,143,.18);border-radius:8px;padding:12px 14px;font-size:12px;color:#3DFF8F;font-weight:500}
+.shipping-banner .ic{font-size:18px;flex-shrink:0}
+
+/* ── Multi-image upload ── */
+.img-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.img-slot{position:relative;aspect-ratio:1/1;border-radius:6px;overflow:hidden;border:1px solid #1A1A1A;background:#0A0A0A}
+.img-slot img{width:100%;height:100%;object-fit:cover;display:block}
+.img-slot-empty{display:flex;align-items:center;justify-content:center;border:1px dashed #1E1E1E;cursor:pointer;color:#333;font-size:22px;transition:border-color .15s}
+.img-slot-empty:hover{border-color:#444;color:#666}
+.img-slot-empty.disabled{opacity:.3;cursor:not-allowed}
+.img-remove{position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.7);color:#ff6666;border:none;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;line-height:1}
+.img-remove:hover{background:#ff4444;color:#fff}
+.img-cover-badge{position:absolute;bottom:3px;left:3px;background:rgba(0,0,0,.7);color:#F5C800;font-size:8px;letter-spacing:1px;padding:2px 5px;border-radius:3px;font-family:'DM Mono',monospace}
 `
 
 // ─── Helpers ─────────────────────────────────────────────────────
 function uid() { return Math.random().toString(36).slice(2, 9) }
-function blank() { return { name: '', brand: '', price: '', sizes: '', stock: '1', image: '', category: 'ropa', description: '' } }
+function blank() { return { name: '', brand: '', price: '', sizes: '', stock: '1', images: [], category: 'ropa', description: '' } }
 
 async function api(path, opts = {}) {
   const res = await fetch(`/api/${path}`, {
@@ -154,16 +194,16 @@ async function api(path, opts = {}) {
   return res.json()
 }
 
-async function compressImg(file) {
+async function compressImg(file, max = 900) {
   return new Promise(res => {
     const img = new Image(), url = URL.createObjectURL(file)
     img.onload = () => {
-      const max = 700, r = Math.min(max / img.width, max / img.height, 1)
+      const r = Math.min(max / img.width, max / img.height, 1)
       const c = document.createElement('canvas')
       c.width = img.width * r; c.height = img.height * r
       c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
       URL.revokeObjectURL(url)
-      res(c.toDataURL('image/jpeg', 0.72))
+      res(c.toDataURL('image/jpeg', 0.75))
     }
     img.src = url
   })
@@ -205,6 +245,8 @@ export default function App() {
   const [tab, setTab] = useState('prods')
   const [socUrl, setSocUrl] = useState('')
   const [socErr, setSocErr] = useState('')
+  const [selProd, setSelProd] = useState(null)
+  const [pdpImg, setPdpImg] = useState(0)
 
   // Inject CSS once
   useEffect(() => {
@@ -260,7 +302,8 @@ export default function App() {
 
   const toARS = usd => blue ? '$ ' + Math.round(Number(usd) * blue).toLocaleString('es-AR') : '—'
 
-  const onWA = p => {
+  const onWA = (p, e) => {
+    if (e) e.stopPropagation()
     const msg = `Hola! Me gustó esta prenda, ¿sigue en stock?\n\n*${p.name}*\nPrecio: USD $${p.price}`
     const num = sett.whatsapp.replace(/\D/g, '')
     window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank')
@@ -269,11 +312,16 @@ export default function App() {
   const openAdd = () => { setPForm(blank()); setEditId(null); setShowPF(true) }
   const openEdit = p => { setPForm({ ...p }); setEditId(p.id); setShowPF(true) }
 
-  const handleImgUpload = async file => {
-    if (!file) return
-    const b64 = await compressImg(file)
-    setPForm(f => ({ ...f, image: b64 }))
+  const handleImgUpload = async files => {
+    const room = 5 - (pForm.images?.length || 0)
+    if (room <= 0) return
+    const list = Array.from(files).slice(0, room)
+    const compressed = await Promise.all(list.map(f => compressImg(f)))
+    setPForm(f => ({ ...f, images: [...(f.images || []), ...compressed].slice(0, 5) }))
   }
+  const removeImg = idx => setPForm(f => ({ ...f, images: f.images.filter((_, i) => i !== idx) }))
+
+  const openProduct = p => { setSelProd(p); setPdpImg(0); setView('product') }
 
   const savePF = async () => {
     if (!pForm.name || !pForm.price) return
@@ -402,10 +450,10 @@ export default function App() {
             ) : (
               <div className="grid">
                 {vis.map(p => (
-                  <div key={p.id} className="card">
+                  <div key={p.id} className="card" onClick={() => openProduct(p)}>
                     <div className="card-img-w">
-                      {p.image
-                        ? <img src={p.image} alt={p.name} className="card-img" onError={e => { e.target.style.display = 'none' }} />
+                      {p.images?.[0]
+                        ? <img src={p.images[0]} alt={p.name} className="card-img" onError={e => { e.target.style.display = 'none' }} />
                         : <div className="card-ph">SIN IMAGEN</div>}
                       <span className={`stock-b ${inStock(p) ? 'in' : 'out'}`}>{inStock(p) ? 'EN STOCK' : 'AGOTADO'}</span>
                     </div>
@@ -418,7 +466,7 @@ export default function App() {
                         <span className="p-usd">USD ${Number(p.price).toLocaleString('en-US')}</span>
                         <span className="p-ars">{toARS(p.price)}</span>
                       </div>
-                      <button className="btn-wa" onClick={() => onWA(p)}>
+                      <button className="btn-wa" onClick={e => onWA(p, e)}>
                         <WaIcon /> Consultar por WhatsApp
                       </button>
                     </div>
@@ -440,7 +488,7 @@ export default function App() {
                     s.type === 'tiktok' ? (
                       <div key={s.uid} className="reel-tt">
                         <iframe
-                          src={`https://www.tiktok.com/embed/v2/${s.id}`}
+                          src={`https://www.tiktok.com/embed/v2/${s.id}?autoplay=1&muted=1&loop=1`}
                           allow="autoplay; clipboard-write; encrypted-media"
                           allowFullScreen scrolling="no"
                           title={`TikTok ${s.id}`}
@@ -464,7 +512,70 @@ export default function App() {
         </main>
       )}
 
-      {/* ── LOGIN ── */}
+      {/* ── PRODUCT DETAIL ── */}
+      {view === 'product' && selProd && (
+        <main className="pdp">
+          <div style={{ gridColumn: '1 / -1' }}>
+            <button className="pdp-back" onClick={() => setView('home')}>← Volver al catálogo</button>
+          </div>
+
+          <div className="pdp-gallery">
+            <div className="pdp-main">
+              {selProd.images?.length
+                ? <img src={selProd.images[pdpImg]} alt={selProd.name} onError={e => { e.target.style.display = 'none' }} />
+                : <div className="card-ph" style={{ width: '100%', height: '100%', display: 'flex' }}>SIN IMAGEN</div>}
+            </div>
+            {selProd.images?.length > 1 && (
+              <div className="pdp-thumbs">
+                {selProd.images.map((img, i) => (
+                  <button key={i} className={`pdp-thumb${i === pdpImg ? ' on' : ''}`} onClick={() => setPdpImg(i)}>
+                    <img src={img} alt={`${selProd.name} ${i + 1}`} />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="pdp-info">
+            {selProd.brand && <p className="pdp-brand">{selProd.brand}</p>}
+            <h1 className="pdp-name">{selProd.name}</h1>
+
+            <div className="pdp-prices">
+              <span className="pdp-usd">USD ${Number(selProd.price).toLocaleString('en-US')}</span>
+              <span className="pdp-ars">{toARS(selProd.price)}</span>
+            </div>
+
+            <span className={`pdp-stock stock-b ${inStock(selProd) ? 'in' : 'out'}`}>
+              {inStock(selProd) ? 'EN STOCK' : 'AGOTADO'}
+            </span>
+
+            {selProd.description && <p className="pdp-desc">{selProd.description}</p>}
+
+            {selProd.sizes && (
+              <>
+                <p className="pdp-sizes-label">Talles disponibles</p>
+                <div className="pdp-sizes">
+                  {selProd.sizes.split(/[,/]/).map(s => s.trim()).filter(Boolean).map(s => (
+                    <span key={s} className="size-tag">{s}</span>
+                  ))}
+                </div>
+              </>
+            )}
+
+            <div className="pdp-actions">
+              <button className="btn-wa" onClick={e => onWA(selProd, e)}>
+                <WaIcon /> Consultar por WhatsApp
+              </button>
+              <div className="shipping-banner">
+                <span className="ic">📦</span>
+                Hacemos envíos gratis a todo el país
+              </div>
+            </div>
+          </div>
+        </main>
+      )}
+
+
       {view === 'login' && (
         <main className="center-pg">
           <div className="login-box">
@@ -508,8 +619,8 @@ export default function App() {
               : <div className="a-list">
                 {prods.map(p => (
                   <div key={p.id} className="a-row">
-                    {p.image
-                      ? <img src={p.image} alt="" className="a-thumb" onError={e => { e.target.style.display = 'none' }} />
+                    {p.images?.[0]
+                      ? <img src={p.images[0]} alt="" className="a-thumb" onError={e => { e.target.style.display = 'none' }} />
                       : <div className="a-ph">?</div>}
                     <div className="a-info">
                       <p className="a-name">{p.brand ? `${p.brand} — ` : ''}{p.name}</p>
@@ -578,25 +689,32 @@ export default function App() {
                   <option value="accesorios">Accesorios</option>
                 </select>
               </label>
-              <label className="full">
-                Imagen del producto
-                <div className="img-upload-area" onClick={() => document.getElementById('img-file').click()}>
-                  <input id="img-file" type="file" accept="image/*" style={{ display: 'none' }}
-                    onChange={e => handleImgUpload(e.target.files[0])} />
-                  {pForm.image
-                    ? <img src={pForm.image} alt="" className="img-preview" />
-                    : <span style={{ fontSize: '12px', color: '#333' }}>
-                      📁 Hacé clic para subir imagen desde la PC<br />
-                      <span style={{ fontSize: '10px', color: '#222' }}>JPG, PNG, WEBP · Se comprime automáticamente</span>
-                    </span>}
+              <div className="field-box">
+                Fotos del producto (hasta 5)
+                <div className="img-grid">
+                  {(pForm.images || []).map((img, i) => (
+                    <div key={i} className="img-slot">
+                      <img src={img} alt="" />
+                      {i === 0 && <span className="img-cover-badge">PORTADA</span>}
+                      <button type="button" className="img-remove" onClick={() => removeImg(i)}>✕</button>
+                    </div>
+                  ))}
+                  {(pForm.images || []).length < 5 && (
+                    <div
+                      className="img-slot img-slot-empty"
+                      onClick={() => document.getElementById('img-file').click()}
+                    >
+                      +
+                    </div>
+                  )}
+                  {Array.from({ length: Math.max(0, 4 - (pForm.images || []).length) }).map((_, i) => (
+                    <div key={`ph-${i}`} className="img-slot img-slot-empty disabled" />
+                  ))}
                 </div>
-                {pForm.image && (
-                  <button onClick={() => setPForm(f => ({ ...f, image: '' }))}
-                    style={{ marginTop: '6px', fontSize: '10px', color: '#ff4444', background: 'none', border: 'none', cursor: 'pointer' }}>
-                    ✕ Quitar imagen
-                  </button>
-                )}
-              </label>
+                <input id="img-file" type="file" accept="image/*" multiple style={{ display: 'none' }}
+                  onChange={e => { handleImgUpload(e.target.files); e.target.value = '' }} />
+                <small>JPG, PNG, WEBP · Se comprimen automáticamente · La primera es la portada</small>
+              </div>
               <label className="full">Descripción
                 <textarea value={pForm.description} onChange={e => setPForm(f => ({ ...f, description: e.target.value }))} placeholder="Detalles del producto..." />
               </label>

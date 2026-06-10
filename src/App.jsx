@@ -176,11 +176,167 @@ const CSS = `
 .img-remove{position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.7);color:#ff6666;border:none;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;line-height:1}
 .img-remove:hover{background:#ff4444;color:#fff}
 .img-cover-badge{position:absolute;bottom:3px;left:3px;background:rgba(0,0,0,.7);color:#F5C800;font-size:8px;letter-spacing:1px;padding:2px 5px;border-radius:3px;font-family:'DM Mono',monospace}
+
+/* ── Theme toggle ── */
+.theme-btn{background:none;border:1px solid #2A2A2A;color:#666;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.theme-btn:hover{border-color:#666;color:#EDEDEC}
+
+/* ── Lightbox ── */
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.97);z-index:400;display:flex;align-items:center;justify-content:center;cursor:zoom-out;animation:lb-in .15s ease}
+@keyframes lb-in{from{opacity:0}to{opacity:1}}
+.lightbox-img{max-width:92vw;max-height:90vh;object-fit:contain;border-radius:4px;cursor:default;user-select:none}
+.lightbox-close{position:absolute;top:14px;right:14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.lightbox-close:hover{background:rgba(255,255,255,.2)}
+.lightbox-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:#fff;width:44px;height:44px;border-radius:50%;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.lightbox-nav:hover{background:rgba(255,255,255,.2)}
+.lightbox-nav.prev{left:14px}
+.lightbox-nav.next{right:14px}
+.pdp-main img{cursor:zoom-in}
+
+/* ── Encargos ── */
+.enc-sec{border-top:1px solid #141414;padding:64px 0 80px}
+.enc-in{max-width:720px;margin:0 auto;padding:0 20px}
+.enc-title{font-size:clamp(28px,5vw,52px);font-weight:600;letter-spacing:-2px;color:#EDEDEC;line-height:.92;margin-bottom:12px}
+.enc-title em{font-style:normal;opacity:.35}
+.enc-sub{font-size:14px;color:#555;line-height:1.65;margin-bottom:32px;max-width:480px}
+.enc-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.enc-grid label{display:flex;flex-direction:column;gap:5px;font-size:9px;letter-spacing:1.5px;color:#3A3A3A;font-family:'DM Mono',monospace;text-transform:uppercase}
+.enc-grid label.full{grid-column:1/-1}
+.enc-grid input,.enc-grid select,.enc-grid textarea{background:#0A0A0A;border:1px solid #1A1A1A;color:#EDEDEC;padding:10px 12px;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;outline:none;transition:border-color .15s}
+.enc-grid input:focus,.enc-grid select:focus,.enc-grid textarea:focus{border-color:#fff}
+.enc-grid textarea{resize:vertical;min-height:72px}
+.enc-grid small{font-size:9px;color:#2A2A2A}
+.enc-photos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}
+.enc-slot{aspect-ratio:1/1;border-radius:6px;overflow:hidden;border:1px solid #1A1A1A;background:#0A0A0A;position:relative}
+.enc-slot img{width:100%;height:100%;object-fit:cover;display:block}
+.enc-slot-empty{display:flex;align-items:center;justify-content:center;border:1px dashed #1E1E1E;cursor:pointer;color:#333;font-size:22px;transition:border-color .15s}
+.enc-slot-empty:hover{border-color:#555;color:#666}
+.enc-slot-empty.disabled{opacity:.25;cursor:not-allowed}
+.enc-slot .img-remove{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.75);color:#ff6666;border:none;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center}
+.enc-submit{width:100%;background:#25D366;border:none;color:#fff;padding:14px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s;font-family:'Inter',sans-serif;margin-top:20px}
+.enc-submit:hover{background:#1da051}
+.enc-note{font-size:10px;color:#2A2A2A;text-align:center;margin-top:8px;font-family:'DM Mono',monospace;line-height:1.5}
+
+/* ── LIGHT MODE ── */
+html.light body{background:#F5F4F0;color:#111}
+html.light .header{background:rgba(245,244,240,.97);border-bottom-color:#DDDBD5}
+html.light .ticker{background:#EBEBEB;border-color:#DDD}
+html.light .ticker-lbl{color:#AAA}
+html.light .ticker-val{color:#9A7200}
+html.light .nav-btn{border-color:#CCC;color:#888}
+html.light .nav-btn:hover{border-color:#888;color:#111}
+html.light .nav-acc{border-color:#111;color:#111}
+html.light .nav-acc:hover{background:#111;color:#fff}
+html.light .theme-btn{border-color:#CCC;color:#888}
+html.light .theme-btn:hover{border-color:#888;color:#111}
+html.light .hero-tag{color:#AAA}
+html.light .hero-h{color:#111}
+html.light .hero-h em{color:#111}
+html.light .hero-desc{color:#777}
+html.light .hero-ig{color:#333;border-bottom-color:rgba(0,0,0,.2)}
+html.light .hero-ig:hover{border-bottom-color:#111}
+html.light .btn-hero{background:#111;color:#fff}
+html.light .btn-hero:hover{background:#333}
+html.light .feats{background:#EEECEA;border-color:#DDDBD5}
+html.light .feat-t{color:#111}
+html.light .feat-d{color:#888}
+html.light .sec-t{color:#AAA}
+html.light .f-btn{border-color:#DDD;color:#AAA}
+html.light .f-btn:hover{border-color:#888;color:#555}
+html.light .f-btn.on{border-color:#111;color:#111}
+html.light .card{background:#fff;border-color:#E5E3DE}
+html.light .card:hover{border-color:#B0AEA8}
+html.light .card-img-w{background:#F0EEE8}
+html.light .card-ph{color:#CCCAC4}
+html.light .card-brand{color:#BBB}
+html.light .card-name{color:#111}
+html.light .card-desc{color:#AAA}
+html.light .card-sizes{color:#AAA}
+html.light .p-usd{color:#9A7200}
+html.light .p-ars{color:#AAA}
+html.light .stock-b.out{background:rgba(0,0,0,.05);color:#AAA;border-color:rgba(0,0,0,.1)}
+html.light .empty p{color:#AAA}
+html.light .empty a{color:#888;border-bottom-color:rgba(0,0,0,.15)}
+html.light .reels-sec{border-top-color:#DDDBD5}
+html.light .reel-tt,.html.light .reel-ig{background:#F0EEE8;border-color:#DDD}
+html.light .center-pg{background:#F5F4F0}
+html.light .login-box{background:#fff;border-color:#E0DED8}
+html.light .login-t{color:#111}
+html.light .login-s{color:#BBB}
+html.light .f-in{background:#F5F4F0;border-color:#DDD;color:#111}
+html.light .f-in:focus{border-color:#111}
+html.light .f-in.err{border-color:#e03333}
+html.light .admin-t{color:#111}
+html.light .tabs{border-color:#DDD}
+html.light .tab{color:#AAA}
+html.light .tab.on{background:#111;color:#fff}
+html.light .a-row{background:#fff;border-color:#E5E3DE}
+html.light .a-row:hover{border-color:#B0AEA8}
+html.light .a-ph{background:#F0EEE8;color:#CCCAC4}
+html.light .a-name{color:#111}
+html.light .a-meta{color:#BBB}
+html.light .modal{background:#fff;border-color:#E0DED8}
+html.light .modal-t{color:#111}
+html.light .fg label,.html.light .field-box{color:#AAA}
+html.light .fg input,.html.light .fg select,.html.light .fg textarea{background:#F5F4F0;border-color:#DDD;color:#111}
+html.light .fg input:focus,.html.light .fg select:focus,.html.light .fg textarea:focus{border-color:#111}
+html.light .fg select option{background:#fff;color:#111}
+html.light .img-slot,.html.light .img-slot-empty{background:#F0EEE8;border-color:#DDD}
+html.light .img-slot-empty{color:#CCC}
+html.light .img-slot-empty:hover{border-color:#888;color:#888}
+html.light .btn-gho{border-color:#DDD;color:#888}
+html.light .btn-gho:hover{border-color:#888;color:#111}
+html.light .btn-set{border-color:#DDD;color:#888}
+html.light .btn-set:hover{border-color:#888;color:#111}
+html.light .btn-ed{border-color:#DDD;color:#888}
+html.light .btn-ed:hover{border-color:#9A7200;color:#9A7200}
+html.light .form-prev{background:rgba(154,114,0,.05);border-color:rgba(154,114,0,.15)}
+html.light .klow-footer{border-top-color:#DDD;color:#BBB}
+html.light .klow-footer a{color:#888}
+html.light .klow-footer a:hover{color:#111}
+html.light .pdp-back{border-color:#DDD;color:#888}
+html.light .pdp-back:hover{border-color:#888;color:#111}
+html.light .pdp-main{background:#F0EEE8;border-color:#E0DED8}
+html.light .pdp-thumb{border-color:#DDD;background:#F0EEE8}
+html.light .pdp-brand{color:#AAA}
+html.light .pdp-name{color:#111}
+html.light .pdp-usd{color:#9A7200}
+html.light .pdp-ars{color:#AAA}
+html.light .pdp-desc{color:#666}
+html.light .pdp-sizes-label{color:#AAA}
+html.light .size-tag{border-color:#DDD;color:#555}
+html.light .enc-sec{border-top-color:#DDDBD5}
+html.light .enc-title{color:#111}
+html.light .enc-sub{color:#888}
+html.light .enc-grid label{color:#AAA}
+html.light .enc-grid input,.html.light .enc-grid select,.html.light .enc-grid textarea{background:#F5F4F0;border-color:#DDD;color:#111}
+html.light .enc-grid input:focus,.html.light .enc-grid select:focus,.html.light .enc-grid textarea:focus{border-color:#111}
+html.light .enc-grid select option{background:#fff;color:#111}
+html.light .enc-slot,.html.light .enc-slot-empty{background:#F0EEE8;border-color:#DDD}
+html.light .enc-slot-empty{color:#CCC}
+html.light .enc-slot-empty:hover{border-color:#888;color:#888}
+html.light .enc-note{color:#BBB}
+
+@media(max-width:600px){
+  .hdr-in{padding:0 10px;gap:8px}
+  .ticker-lbl{display:none}
+  .hero{padding:40px 14px 32px}
+  .sec{padding:28px 14px 44px}
+  .fg{grid-template-columns:1fr}
+  .field-box{grid-column:1/-1}
+  .admin{padding:18px 14px 44px}
+  .feats-in{padding:18px 14px;gap:14px}
+  .reels-in{padding:0 14px}
+  .pdp{grid-template-columns:1fr;padding:20px 14px 48px}
+  .enc-grid{grid-template-columns:1fr}
+  .enc-in{padding:0 14px}
+}
 `
 
 // ─── Helpers ─────────────────────────────────────────────────────
 function uid() { return Math.random().toString(36).slice(2, 9) }
 function blank() { return { name: '', brand: '', price: '', sizes: '', stock: '1', images: [], category: 'ropa', description: '' } }
+function blankEnc() { return { nombre: '', tipo: '', talle: '', color: '', link: '', pagina: '', detalles: '' } }
 
 async function api(path, opts = {}) {
   const res = await fetch(`/api/${path}`, {
@@ -247,6 +403,10 @@ export default function App() {
   const [socErr, setSocErr] = useState('')
   const [selProd, setSelProd] = useState(null)
   const [pdpImg, setPdpImg] = useState(0)
+  const [lightImg, setLightImg] = useState(null) // { imgs, idx }
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('klow-theme') !== 'light')
+  const [encForm, setEncForm] = useState(blankEnc())
+  const [encPhotos, setEncPhotos] = useState([])
 
   // Inject CSS once
   useEffect(() => {
@@ -279,6 +439,19 @@ export default function App() {
       window.instgrm.Embeds.process()
     }
   }, [socials, view])
+
+  // Dark / light mode class on <html>
+  useEffect(() => {
+    document.documentElement.classList.toggle('light', !darkMode)
+    localStorage.setItem('klow-theme', darkMode ? 'dark' : 'light')
+  }, [darkMode])
+
+  // Close lightbox on Escape
+  useEffect(() => {
+    const h = e => { if (e.key === 'Escape') setLightImg(null) }
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, []) 
 
   const fetchBlue = async () => {
     try {
@@ -373,6 +546,36 @@ export default function App() {
   const vis = cat === 'all' ? prods : prods.filter(p => p.category === cat)
   const inStock = p => Number(p.stock) > 0
 
+  const handleEncPhotos = async files => {
+    const room = 3 - encPhotos.length
+    if (room <= 0) return
+    const list = Array.from(files).slice(0, room)
+    const compressed = await Promise.all(list.map(f => compressImg(f, 600)))
+    setEncPhotos(prev => [...prev, ...compressed].slice(0, 3))
+  }
+
+  const submitEncargo = () => {
+    const { nombre, tipo, talle, color, link, pagina, detalles } = encForm
+    if (!nombre || !tipo || !talle || !color) {
+      alert('Completá los campos obligatorios: Producto, Tipo, Talle y Color.')
+      return
+    }
+    const lines = [
+      `Hola! Quiero hacer un encargo 🛒`,
+      ``,
+      `📦 *Producto:* ${nombre}`,
+      `📂 *Tipo:* ${tipo}`,
+      `📏 *Talle:* ${talle}`,
+      `🎨 *Color:* ${color}`,
+      link ? `🔗 *Link de referencia:* ${link}` : null,
+      pagina ? `🌐 *Lo vi en:* ${pagina}` : null,
+      detalles ? `📝 *Detalles:* ${detalles}` : null,
+      encPhotos.length > 0 ? `📸 Tengo ${encPhotos.length} foto${encPhotos.length > 1 ? 's' : ''} de referencia para enviarte en este chat.` : null,
+    ].filter(Boolean).join('\n')
+    const num = sett.whatsapp.replace(/\D/g, '')
+    window.open(`https://wa.me/${num}?text=${encodeURIComponent(lines)}`, '_blank')
+  }
+
   return (
     <>
       {/* ── HEADER ── */}
@@ -387,6 +590,9 @@ export default function App() {
             <span className="ticker-val">{blue ? `$${blue.toLocaleString('es-AR')}` : '...'}</span>
           </div>
           <nav className="nav">
+            <button className="theme-btn" onClick={() => setDarkMode(d => !d)} title={darkMode ? 'Modo claro' : 'Modo oscuro'}>
+              {darkMode ? '☀️' : '🌙'}
+            </button>
             {isAdm ? (
               <>
                 <button className="nav-btn" onClick={() => setView('admin')}>Panel</button>
@@ -512,6 +718,65 @@ export default function App() {
         </main>
       )}
 
+      {/* ── ENCARGOS ── */}
+      {view === 'home' && (
+        <section className="enc-sec">
+          <div className="enc-in">
+            <div style={{ marginBottom: 32 }}>
+              <h2 className="enc-title">¿No encontrás<br /><em>lo que buscás?</em></h2>
+              <p className="enc-sub">Completá el formulario y te conseguimos lo que quieras. Importamos desde USA cualquier prenda, zapatilla o accesorio.</p>
+            </div>
+            <div className="enc-grid">
+              <label>Nombre del producto *<input value={encForm.nombre} onChange={e => setEncForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Air Jordan 1 Retro High OG" /></label>
+              <label>Tipo de producto *
+                <select value={encForm.tipo} onChange={e => setEncForm(f => ({ ...f, tipo: e.target.value }))}>
+                  <option value="">Seleccioná...</option>
+                  <option value="Zapatillas">Zapatillas</option>
+                  <option value="Ropa">Ropa</option>
+                  <option value="Campera">Campera</option>
+                  <option value="Remera">Remera</option>
+                  <option value="Pantalón">Pantalón</option>
+                  <option value="Accesorio">Accesorio</option>
+                  <option value="Otro">Otro</option>
+                </select>
+              </label>
+              <label>Talle *<input value={encForm.talle} onChange={e => setEncForm(f => ({ ...f, talle: e.target.value }))} placeholder="42 / M / L" /></label>
+              <label>Color *<input value={encForm.color} onChange={e => setEncForm(f => ({ ...f, color: e.target.value }))} placeholder="Blanco, Negro, Rojo..." /></label>
+              <label className="full">Link de la imagen (opcional)<input value={encForm.link} onChange={e => setEncForm(f => ({ ...f, link: e.target.value }))} placeholder="https://..." /></label>
+              <label className="full">Página donde lo viste (opcional)<input value={encForm.pagina} onChange={e => setEncForm(f => ({ ...f, pagina: e.target.value }))} placeholder="Nike.com, GOAT, StockX..." /></label>
+              <label className="full">Detalles adicionales (opcional)<textarea value={encForm.detalles} onChange={e => setEncForm(f => ({ ...f, detalles: e.target.value }))} placeholder="Condición, modelo exacto, con o sin caja..." /></label>
+              <label className="full">
+                Fotos de referencia (opcional, hasta 3)
+                <div className="enc-photos">
+                  {encPhotos.map((img, i) => (
+                    <div key={i} className="enc-slot">
+                      <img src={img} alt="" />
+                      <button type="button" className="img-remove" onClick={() => setEncPhotos(p => p.filter((_, j) => j !== i))}>✕</button>
+                    </div>
+                  ))}
+                  {encPhotos.length < 3 && (
+                    <div className="enc-slot enc-slot-empty" onClick={() => document.getElementById('enc-file').click()}>+</div>
+                  )}
+                  {Array.from({ length: Math.max(0, 2 - encPhotos.length) }).map((_, i) => (
+                    <div key={`ep${i}`} className="enc-slot enc-slot-empty disabled" />
+                  ))}
+                </div>
+                <input id="enc-file" type="file" accept="image/*" multiple style={{ display: 'none' }}
+                  onChange={e => { handleEncPhotos(e.target.files); e.target.value = '' }} />
+                <small>JPG, PNG, WEBP</small>
+              </label>
+            </div>
+            <button className="enc-submit" onClick={submitEncargo}>
+              <WaIcon /> Consultar por WhatsApp
+            </button>
+            <p className="enc-note">
+              Te respondemos en menos de 24hs · 📦 Envíos gratis a todo el país
+              {encPhotos.length > 0 && <><br />📸 Las fotos las podés enviar directo por WhatsApp después de abrir el chat</>}
+            </p>
+          </div>
+        </section>
+      )}
+
       {/* ── PRODUCT DETAIL ── */}
       {view === 'product' && selProd && (
         <main className="pdp">
@@ -522,7 +787,12 @@ export default function App() {
           <div className="pdp-gallery">
             <div className="pdp-main">
               {selProd.images?.length
-                ? <img src={selProd.images[pdpImg]} alt={selProd.name} onError={e => { e.target.style.display = 'none' }} />
+                ? <img
+                    src={selProd.images[pdpImg]}
+                    alt={selProd.name}
+                    onClick={() => setLightImg({ imgs: selProd.images, idx: pdpImg })}
+                    onError={e => { e.target.style.display = 'none' }}
+                  />
                 : <div className="card-ph" style={{ width: '100%', height: '100%', display: 'flex' }}>SIN IMAGEN</div>}
             </div>
             {selProd.images?.length > 1 && (
@@ -765,6 +1035,25 @@ export default function App() {
               }}>Guardar</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── LIGHTBOX ── */}
+      {lightImg && (
+        <div className="lightbox" onClick={() => setLightImg(null)}>
+          <button className="lightbox-close" onClick={() => setLightImg(null)}>✕</button>
+          {lightImg.imgs.length > 1 && (
+            <button className="lightbox-nav prev" onClick={e => { e.stopPropagation(); setLightImg(l => ({ ...l, idx: (l.idx - 1 + l.imgs.length) % l.imgs.length })) }}>‹</button>
+          )}
+          <img
+            className="lightbox-img"
+            src={lightImg.imgs[lightImg.idx]}
+            alt=""
+            onClick={e => e.stopPropagation()}
+          />
+          {lightImg.imgs.length > 1 && (
+            <button className="lightbox-nav next" onClick={e => { e.stopPropagation(); setLightImg(l => ({ ...l, idx: (l.idx + 1) % l.imgs.length })) }}>›</button>
+          )}
         </div>
       )}
 

@@ -13,11 +13,23 @@ const CSS = `
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
 .ticker-lbl{font-size:10px;letter-spacing:1.5px;color:#3A3A3A;font-family:'DM Mono',monospace}
 .ticker-val{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#F5C800;margin-left:6px}
-.nav{display:flex;gap:7px;align-items:center;margin-left:auto}
+.nav{display:flex;gap:6px;align-items:center;margin-left:auto}
+.nav-links{display:flex;gap:2px;align-items:center}
+.nav-link{background:none;border:none;color:#555;padding:7px 12px;cursor:pointer;font-size:12px;font-family:'Inter',sans-serif;transition:color .15s;letter-spacing:.3px;white-space:nowrap}
+.nav-link:hover{color:#EDEDEC}
 .nav-btn{background:none;border:1px solid #222;color:#555;padding:6px 13px;border-radius:4px;cursor:pointer;font-size:12px;font-family:'Inter',sans-serif;transition:all .15s}
 .nav-btn:hover{border-color:#555;color:#EDEDEC}
 .nav-acc{background:none;border:1px solid #fff;color:#fff;padding:6px 13px;border-radius:4px;cursor:pointer;font-size:12px;font-family:'Inter',sans-serif;transition:all .15s}
 .nav-acc:hover{background:#fff;color:#000}
+.hamburger{display:none;background:none;border:1px solid #2A2A2A;color:#888;width:36px;height:36px;border-radius:5px;cursor:pointer;font-size:19px;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.hamburger:hover{border-color:#666;color:#EDEDEC}
+.hamburger.open{border-color:#555;color:#EDEDEC}
+.mob-menu{display:none;position:absolute;top:58px;left:0;right:0;background:rgba(10,10,10,.99);border-bottom:1px solid #1C1C1C;backdrop-filter:blur(16px);z-index:99;flex-direction:column;padding:6px 0 10px}
+.mob-menu.open{display:flex}
+.mob-link{background:none;border:none;color:#777;padding:14px 20px;cursor:pointer;font-size:14px;font-family:'Inter',sans-serif;text-align:left;border-bottom:1px solid #141414;transition:color .15s;width:100%;display:flex;align-items:center;gap:10px;letter-spacing:.2px}
+.mob-link:last-child{border-bottom:none}
+.mob-link:hover{color:#EDEDEC;background:rgba(255,255,255,.03)}
+.mob-link .mob-ico{font-size:16px;width:24px;text-align:center;flex-shrink:0}
 .hero{max-width:1200px;margin:0 auto;padding:68px 20px 48px}
 .hero-tag{display:inline-block;font-size:10px;letter-spacing:3px;color:#444;font-family:'DM Mono',monospace;margin-bottom:18px;text-transform:uppercase}
 .hero-h{font-size:clamp(60px,10vw,115px);font-weight:600;line-height:.88;letter-spacing:-3px;color:#EDEDEC;margin-bottom:24px}
@@ -41,7 +53,7 @@ const CSS = `
 .f-btn{background:none;border:1px solid #1C1C1C;color:#3A3A3A;padding:5px 12px;border-radius:3px;cursor:pointer;font-size:10px;letter-spacing:1.5px;font-family:'DM Mono',monospace;transition:all .15s}
 .f-btn:hover{border-color:#444;color:#888}
 .f-btn.on{border-color:#fff;color:#fff}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
 .card{background:#0F0F0F;border:1px solid #181818;border-radius:8px;overflow:hidden;transition:border-color .2s,transform .2s;cursor:pointer}
 .card:hover{border-color:#2A2A2A;transform:translateY(-2px)}
 .card-img-w{position:relative;aspect-ratio:1/1;background:#141414;overflow:hidden}
@@ -317,19 +329,75 @@ html.light .enc-slot-empty{color:#CCC}
 html.light .enc-slot-empty:hover{border-color:#888;color:#888}
 html.light .enc-note{color:#BBB}
 
+/* ── Light mode nav overrides ── */
+html.light .nav-link{color:#888}
+html.light .nav-link:hover{color:#111}
+html.light .hamburger{border-color:#CCC;color:#888}
+html.light .hamburger:hover{border-color:#888;color:#111}
+html.light .mob-menu{background:rgba(245,244,240,.99);border-bottom-color:#DDD}
+html.light .mob-link{color:#777;border-bottom-color:#EEE}
+html.light .mob-link:hover{color:#111;background:rgba(0,0,0,.03)}
+
+/* ── Tablet ── */
+@media(max-width:900px){
+  .nav-links{display:none}
+  .hamburger{display:flex}
+}
+
+/* ── Mobile ── */
 @media(max-width:600px){
-  .hdr-in{padding:0 10px;gap:8px}
+  .hdr-in{padding:0 14px;gap:10px}
   .ticker-lbl{display:none}
-  .hero{padding:40px 14px 32px}
-  .sec{padding:28px 14px 44px}
-  .fg{grid-template-columns:1fr}
-  .field-box{grid-column:1/-1}
-  .admin{padding:18px 14px 44px}
-  .feats-in{padding:18px 14px;gap:14px}
+  .ticker{padding:5px 9px}
+  .ticker-val{font-size:12px}
+
+  .hero{padding:36px 14px 28px}
+  .hero-h{letter-spacing:-2px}
+  .hero-links{gap:10px}
+
+  .feats-in{padding:16px 14px;grid-template-columns:1fr 1fr;gap:12px}
+  .feat-d{display:none}
+
+  .sec{padding:24px 14px 40px}
+  .sec-hd{margin-bottom:16px}
+  .grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .card-body{padding:10px 11px 12px}
+  .card-name{font-size:12px}
+  .card-brand{font-size:9px}
+  .card-sizes{font-size:9px;margin-bottom:8px}
+  .p-usd{font-size:14px}
+  .p-ars{font-size:10px}
+  .card-prices{margin-bottom:9px}
+  .btn-wa{font-size:11px;padding:8px 10px}
+  .filter-bar{gap:4px}
+  .f-btn{padding:4px 9px;font-size:9px}
+
   .reels-in{padding:0 14px}
-  .pdp{grid-template-columns:1fr;padding:20px 14px 48px}
+  .reel-tt{width:220px;height:390px}
+
+  .pdp{grid-template-columns:1fr;padding:16px 14px 48px;gap:20px}
+  .pdp-name{font-size:22px}
+  .pdp-usd{font-size:22px}
+  .pdp-thumb{width:52px;height:52px}
+
   .enc-grid{grid-template-columns:1fr}
   .enc-in{padding:0 14px}
+  .enc-title{letter-spacing:-1.5px}
+
+  .admin{padding:16px 14px 40px}
+  .admin-hd{flex-direction:column;align-items:flex-start}
+  .admin-acts{width:100%}
+  .admin-acts .btn-pri,.admin-acts .btn-set{flex:1;text-align:center}
+  .a-row{flex-wrap:wrap}
+  .a-btns{width:100%;justify-content:flex-end;margin-top:6px}
+
+  .fg{grid-template-columns:1fr}
+  .field-box{grid-column:1/-1}
+  .img-grid{grid-template-columns:repeat(5,1fr)}
+
+  .modal{padding:20px 16px}
+  .modal-btns{flex-direction:column-reverse}
+  .modal-btns .btn-gho,.modal-btns .btn-pri{width:100%;text-align:center}
 }
 `
 
@@ -403,10 +471,11 @@ export default function App() {
   const [socErr, setSocErr] = useState('')
   const [selProd, setSelProd] = useState(null)
   const [pdpImg, setPdpImg] = useState(0)
-  const [lightImg, setLightImg] = useState(null) // { imgs, idx }
+  const [lightImg, setLightImg] = useState(null)
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('klow-theme') !== 'light')
   const [encForm, setEncForm] = useState(blankEnc())
   const [encPhotos, setEncPhotos] = useState([])
+  const [menuOpen, setMenuOpen] = useState(false)
 
   // Inject CSS once
   useEffect(() => {
@@ -446,11 +515,13 @@ export default function App() {
     localStorage.setItem('klow-theme', darkMode ? 'dark' : 'light')
   }, [darkMode])
 
-  // Close lightbox on Escape
+  // Close lightbox on Escape, close menu on scroll
   useEffect(() => {
-    const h = e => { if (e.key === 'Escape') setLightImg(null) }
+    const h = e => { if (e.key === 'Escape') { setLightImg(null); setMenuOpen(false) } }
+    const onScroll = () => setMenuOpen(false)
     window.addEventListener('keydown', h)
-    return () => window.removeEventListener('keydown', h)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => { window.removeEventListener('keydown', h); window.removeEventListener('scroll', onScroll) }
   }, []) 
 
   const fetchBlue = async () => {
@@ -543,6 +614,16 @@ export default function App() {
       alert('No se pudo borrar.')
     }
   }
+  const goTo = id => {
+    setMenuOpen(false)
+    if (view !== 'home') {
+      setView('home')
+      setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
+    } else {
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
   const vis = cat === 'all' ? prods : prods.filter(p => p.category === cat)
   const inStock = p => Number(p.stock) > 0
 
@@ -579,29 +660,68 @@ export default function App() {
   return (
     <>
       {/* ── HEADER ── */}
-      <header className="header">
+      <header className="header" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
         <div className="hdr-in">
-          <button className="logo-btn" onClick={() => setView('home')}>
+          <button className="logo-btn" onClick={() => { setView('home'); setMenuOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>
             <img src="/logo.png" alt="KLOW" className="logo-img" />
           </button>
+
           <div className="ticker">
             <span className="ticker-dot" />
             <span className="ticker-lbl">USD BLUE VENTA</span>
             <span className="ticker-val">{blue ? `$${blue.toLocaleString('es-AR')}` : '...'}</span>
           </div>
+
+          {/* Desktop nav links */}
+          <div className="nav-links">
+            <button className="nav-link" onClick={() => goTo('stock')}>Stock</button>
+            <button className="nav-link" onClick={() => goTo('encargos')}>Encargos</button>
+          </div>
+
           <nav className="nav">
             <button className="theme-btn" onClick={() => setDarkMode(d => !d)} title={darkMode ? 'Modo claro' : 'Modo oscuro'}>
               {darkMode ? '☀️' : '🌙'}
             </button>
             {isAdm ? (
               <>
-                <button className="nav-btn" onClick={() => setView('admin')}>Panel</button>
-                <button className="nav-btn" onClick={() => { setIsAdm(false); setView('home') }}>Salir</button>
+                <button className="nav-btn" onClick={() => { setView('admin'); setMenuOpen(false) }}>Panel</button>
+                <button className="nav-btn" onClick={() => { setIsAdm(false); setView('home'); setMenuOpen(false) }}>Salir</button>
               </>
             ) : (
-              <button className="nav-acc" onClick={() => setView('login')}>Admin</button>
+              <button className="nav-acc" onClick={() => { setView('login'); setMenuOpen(false) }}>Admin</button>
             )}
+            {/* Hamburger */}
+            <button className={`hamburger${menuOpen ? ' open' : ''}`} onClick={() => setMenuOpen(o => !o)}>
+              {menuOpen ? '✕' : '☰'}
+            </button>
           </nav>
+        </div>
+
+        {/* Mobile dropdown menu */}
+        <div className={`mob-menu${menuOpen ? ' open' : ''}`}>
+          <button className="mob-link" onClick={() => goTo('stock')}>
+            <span className="mob-ico">👟</span> Stock disponible
+          </button>
+          <button className="mob-link" onClick={() => goTo('encargos')}>
+            <span className="mob-ico">📋</span> Encargos
+          </button>
+          <button className="mob-link" onClick={() => { setDarkMode(d => !d); setMenuOpen(false) }}>
+            <span className="mob-ico">{darkMode ? '☀️' : '🌙'}</span> {darkMode ? 'Modo claro' : 'Modo oscuro'}
+          </button>
+          {isAdm ? (
+            <>
+              <button className="mob-link" onClick={() => { setView('admin'); setMenuOpen(false) }}>
+                <span className="mob-ico">⚙️</span> Panel admin
+              </button>
+              <button className="mob-link" onClick={() => { setIsAdm(false); setView('home'); setMenuOpen(false) }}>
+                <span className="mob-ico">🚪</span> Cerrar sesión
+              </button>
+            </>
+          ) : (
+            <button className="mob-link" onClick={() => { setView('login'); setMenuOpen(false) }}>
+              <span className="mob-ico">🔐</span> Admin
+            </button>
+          )}
         </div>
       </header>
 
@@ -634,7 +754,7 @@ export default function App() {
             </div>
           </div>
 
-          <section className="sec">
+          <section className="sec" id="stock">
             <div className="sec-hd">
               <h2 className="sec-t">Stock disponible</h2>
               {prods.length > 0 && (
@@ -720,7 +840,7 @@ export default function App() {
 
       {/* ── ENCARGOS ── */}
       {view === 'home' && (
-        <section className="enc-sec">
+        <section className="enc-sec" id="encargos">
           <div className="enc-in">
             <div style={{ marginBottom: 32 }}>
               <h2 className="enc-title">¿No encontrás<br /><em>lo que buscás?</em></h2>

@@ -9,10 +9,14 @@ CREATE TABLE IF NOT EXISTS products (
   sizes       TEXT DEFAULT '',
   stock       INTEGER DEFAULT 0,
   image       TEXT DEFAULT '',
+  images      TEXT DEFAULT '[]',  -- JSON array de hasta 5 imágenes (base64)
   category    TEXT DEFAULT 'ropa',
   description TEXT DEFAULT '',
   created_at  TIMESTAMP DEFAULT now()
 );
+
+-- Si la tabla ya existía de antes, esto agrega la columna nueva sin romper nada
+ALTER TABLE products ADD COLUMN IF NOT EXISTS images TEXT DEFAULT '[]';
 
 CREATE TABLE IF NOT EXISTS socials (
   uid        TEXT PRIMARY KEY,

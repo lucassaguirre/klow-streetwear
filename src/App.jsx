@@ -4,15 +4,19 @@ import { useState, useEffect } from 'react'
 const DEF_SETTINGS = { whatsapp: '5491165830511' }
 
 const CSS = `
+.banner-wrap{width:100%;overflow:hidden;line-height:0;cursor:pointer;display:block}
+.top-banner{display:block;width:100%;height:70px;object-fit:cover;object-position:center}
 .header{position:sticky;top:0;z-index:100;background:rgba(10,10,10,.96);backdrop-filter:blur(16px);border-bottom:1px solid #181818}
-.hdr-in{max-width:1200px;margin:0 auto;padding:0 20px;height:58px;display:flex;align-items:center;gap:14px}
-.logo-btn{background:none;border:none;cursor:pointer;padding:0;display:flex;align-items:center}
-.logo-img{height:32px;width:auto;mix-blend-mode:screen;filter:brightness(1.1)}
-.ticker{display:flex;align-items:center;gap:8px;background:#0F0F0F;border:1px solid #1C1C1C;border-radius:5px;padding:5px 11px}
-.ticker-dot{width:5px;height:5px;border-radius:50%;background:#3DFF8F;animation:pulse 2s infinite;flex-shrink:0}
+.ticker-bar{overflow:hidden;white-space:nowrap;border-bottom:1px solid #181818;height:28px;display:flex;align-items:center}
+.ticker-track{display:flex;width:max-content;animation:ticker-scroll 24s linear infinite}
+.ticker-bar:hover .ticker-track{animation-play-state:paused}
+.ticker-group{display:flex;align-items:center;flex-shrink:0}
+.ticker-item{display:inline-flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;color:#444;padding:0 22px;white-space:nowrap}
+.ticker-item .ticker-dot{width:5px;height:5px;border-radius:50%;background:#3DFF8F;animation:pulse 2s infinite;flex-shrink:0}
+.ticker-item .ticker-val{color:#F5C800;font-weight:500}
+@keyframes ticker-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
-.ticker-lbl{font-size:10px;letter-spacing:1.5px;color:#3A3A3A;font-family:'DM Mono',monospace}
-.ticker-val{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#F5C800;margin-left:6px}
+.nav-row{max-width:1200px;margin:0 auto;padding:0 20px;height:54px;display:flex;align-items:center;gap:8px}
 .nav{display:flex;gap:6px;align-items:center;margin-left:auto}
 .nav-links{display:flex;gap:2px;align-items:center}
 .nav-link{background:none;border:none;color:#555;padding:7px 12px;cursor:pointer;font-size:12px;font-family:'Inter',sans-serif;transition:color .15s;letter-spacing:.3px;white-space:nowrap}
@@ -24,7 +28,7 @@ const CSS = `
 .hamburger{display:none;background:none;border:1px solid #2A2A2A;color:#888;width:36px;height:36px;border-radius:5px;cursor:pointer;font-size:19px;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
 .hamburger:hover{border-color:#666;color:#EDEDEC}
 .hamburger.open{border-color:#555;color:#EDEDEC}
-.mob-menu{display:none;position:absolute;top:58px;left:0;right:0;background:rgba(10,10,10,.99);border-bottom:1px solid #1C1C1C;backdrop-filter:blur(16px);z-index:99;flex-direction:column;padding:6px 0 10px}
+.mob-menu{display:none;position:absolute;top:100%;left:0;right:0;background:rgba(10,10,10,.99);border-bottom:1px solid #1C1C1C;backdrop-filter:blur(16px);z-index:99;flex-direction:column;padding:6px 0 10px}
 .mob-menu.open{display:flex}
 .mob-link{background:none;border:none;color:#777;padding:14px 20px;cursor:pointer;font-size:14px;font-family:'Inter',sans-serif;text-align:left;border-bottom:1px solid #141414;transition:color .15s;width:100%;display:flex;align-items:center;gap:10px;letter-spacing:.2px}
 .mob-link:last-child{border-bottom:none}
@@ -139,17 +143,6 @@ const CSS = `
 .klow-footer{border-top:1px solid #0F0F0F;padding:20px;text-align:center;font-size:10px;color:#222;font-family:'DM Mono',monospace;letter-spacing:1px}
 .klow-footer a{color:#333;text-decoration:none}
 .klow-footer a:hover{color:#fff}
-@media(max-width:600px){
-  .hdr-in{padding:0 14px;gap:8px}
-  .ticker-lbl{display:none}
-  .hero{padding:40px 14px 32px}
-  .sec{padding:28px 14px 44px}
-  .fg{grid-template-columns:1fr}
-  .admin{padding:18px 14px 44px}
-  .feats-in{padding:18px 14px;gap:14px}
-  .reels-in{padding:0 14px}
-  .pdp{grid-template-columns:1fr;padding:20px 14px 48px}
-}
 
 /* ── Product detail page ── */
 .pdp{max-width:1100px;margin:0 auto;padding:32px 20px 64px;display:grid;grid-template-columns:1.1fr 1fr;gap:36px}
@@ -214,6 +207,7 @@ const CSS = `
 .enc-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
 .enc-grid label{display:flex;flex-direction:column;gap:5px;font-size:9px;letter-spacing:1.5px;color:#3A3A3A;font-family:'DM Mono',monospace;text-transform:uppercase}
 .enc-grid label.full{grid-column:1/-1}
+.enc-grid .field-box{display:flex;flex-direction:column;gap:5px;font-size:9px;letter-spacing:1.5px;color:#3A3A3A;font-family:'DM Mono',monospace;text-transform:uppercase;grid-column:1/-1}
 .enc-grid input,.enc-grid select,.enc-grid textarea{background:#0A0A0A;border:1px solid #1A1A1A;color:#EDEDEC;padding:10px 12px;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;outline:none;transition:border-color .15s}
 .enc-grid input:focus,.enc-grid select:focus,.enc-grid textarea:focus{border-color:#fff}
 .enc-grid textarea{resize:vertical;min-height:72px}
@@ -232,8 +226,8 @@ const CSS = `
 /* ── LIGHT MODE ── */
 html.light body{background:#F5F4F0;color:#111}
 html.light .header{background:rgba(245,244,240,.97);border-bottom-color:#DDDBD5}
-html.light .ticker{background:#EBEBEB;border-color:#DDD}
-html.light .ticker-lbl{color:#AAA}
+html.light .ticker-bar{border-bottom-color:#DDDBD5}
+html.light .ticker-item{color:#BBB}
 html.light .ticker-val{color:#9A7200}
 html.light .nav-btn{border-color:#CCC;color:#888}
 html.light .nav-btn:hover{border-color:#888;color:#111}
@@ -320,7 +314,7 @@ html.light .size-tag{border-color:#DDD;color:#555}
 html.light .enc-sec{border-top-color:#DDDBD5}
 html.light .enc-title{color:#111}
 html.light .enc-sub{color:#888}
-html.light .enc-grid label{color:#AAA}
+html.light .enc-grid label,.html.light .enc-grid .field-box{color:#AAA}
 html.light .enc-grid input,.html.light .enc-grid select,.html.light .enc-grid textarea{background:#F5F4F0;border-color:#DDD;color:#111}
 html.light .enc-grid input:focus,.html.light .enc-grid select:focus,.html.light .enc-grid textarea:focus{border-color:#111}
 html.light .enc-grid select option{background:#fff;color:#111}
@@ -346,10 +340,9 @@ html.light .mob-link:hover{color:#111;background:rgba(0,0,0,.03)}
 
 /* ── Mobile ── */
 @media(max-width:600px){
-  .hdr-in{padding:0 14px;gap:10px}
-  .ticker-lbl{display:none}
-  .ticker{padding:5px 9px}
-  .ticker-val{font-size:12px}
+  .top-banner{height:46px}
+  .nav-row{padding:0 14px;gap:8px}
+  .ticker-item{font-size:10px;letter-spacing:1.5px;padding:0 16px}
 
   .hero{padding:36px 14px 28px}
   .hero-h{letter-spacing:-2px}
@@ -659,20 +652,35 @@ export default function App() {
 
   return (
     <>
-      {/* ── HEADER ── */}
-      <header className="header" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
-        <div className="hdr-in">
-          <button className="logo-btn" onClick={() => { setView('home'); setMenuOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>
-            <img src="/logo.png" alt="KLOW" className="logo-img" />
-          </button>
+      {/* ── BANNER (scrolls away with the page) ── */}
+      <div
+        className="banner-wrap"
+        onClick={() => { setView('home'); setMenuOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+      >
+        <img src="/banner.jpg" alt="KLOW Streetwear" className="top-banner" />
+      </div>
 
-          <div className="ticker">
-            <span className="ticker-dot" />
-            <span className="ticker-lbl">USD BLUE VENTA</span>
-            <span className="ticker-val">{blue ? `$${blue.toLocaleString('es-AR')}` : '...'}</span>
+      {/* ── STICKY HEADER: ticker + nav ── */}
+      <header className="header">
+        {/* Scrolling dollar-blue ticker */}
+        <div className="ticker-bar">
+          <div className="ticker-track">
+            {[0, 1].map(g => (
+              <div className="ticker-group" key={g}>
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <span className="ticker-item" key={i}>
+                    <span className="ticker-dot" />
+                    USD BLUE VENTA{' '}
+                    <span className="ticker-val">{blue ? `$${blue.toLocaleString('es-AR')}` : '...'}</span>
+                  </span>
+                ))}
+              </div>
+            ))}
           </div>
+        </div>
 
-          {/* Desktop nav links */}
+        {/* Nav row: Stock / Encargos / Admin / theme */}
+        <div className="nav-row">
           <div className="nav-links">
             <button className="nav-link" onClick={() => goTo('stock')}>Stock</button>
             <button className="nav-link" onClick={() => goTo('encargos')}>Encargos</button>
@@ -865,7 +873,7 @@ export default function App() {
               <label className="full">Link de la imagen (opcional)<input value={encForm.link} onChange={e => setEncForm(f => ({ ...f, link: e.target.value }))} placeholder="https://..." /></label>
               <label className="full">Página donde lo viste (opcional)<input value={encForm.pagina} onChange={e => setEncForm(f => ({ ...f, pagina: e.target.value }))} placeholder="Nike.com, GOAT, StockX..." /></label>
               <label className="full">Detalles adicionales (opcional)<textarea value={encForm.detalles} onChange={e => setEncForm(f => ({ ...f, detalles: e.target.value }))} placeholder="Condición, modelo exacto, con o sin caja..." /></label>
-              <label className="full">
+              <div className="field-box">
                 Fotos de referencia (opcional, hasta 3)
                 <div className="enc-photos">
                   {encPhotos.map((img, i) => (
@@ -884,7 +892,7 @@ export default function App() {
                 <input id="enc-file" type="file" accept="image/*" multiple style={{ display: 'none' }}
                   onChange={e => { handleEncPhotos(e.target.files); e.target.value = '' }} />
                 <small>JPG, PNG, WEBP</small>
-              </label>
+              </div>
             </div>
             <button className="enc-submit" onClick={submitEncargo}>
               <WaIcon /> Consultar por WhatsApp

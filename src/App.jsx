@@ -1,8 +1,49 @@
 import { useState, useEffect } from 'react'
+import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom'
 
-// ─── Constants ───────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 const DEF_SETTINGS = { whatsapp: '5491165830511' }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function uid() { return Math.random().toString(36).slice(2, 9) }
+function blank() { return { name:'', brand:'', price:'', sizes:'', stock:'1', images:[], category:'ropa', description:'' } }
+function blankEnc() { return { nombre:'', tipo:'', talle:'', color:'', link:'', pagina:'', detalles:'' } }
+
+async function api(path, opts = {}) {
+  const res = await fetch(`/api/${path}`, { headers: { 'Content-Type': 'application/json' }, ...opts })
+  if (!res.ok) { const b = await res.json().catch(() => ({})); throw new Error(b.error || `Error ${res.status}`) }
+  return res.json()
+}
+
+async function compressImg(file, max = 900) {
+  return new Promise(res => {
+    const img = new Image(), url = URL.createObjectURL(file)
+    img.onload = () => {
+      const r = Math.min(max/img.width, max/img.height, 1)
+      const c = document.createElement('canvas')
+      c.width = img.width*r; c.height = img.height*r
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
+      URL.revokeObjectURL(url)
+      res(c.toDataURL('image/jpeg', 0.75))
+    }
+    img.src = url
+  })
+}
+
+function parseSocial(raw) {
+  const url = raw.trim()
+  const tt = url.match(/tiktok\.com\/@[^/]+\/video\/(\d+)/)
+  if (tt) return { type:'tiktok', id:tt[1], url }
+  const ig = url.match(/instagram\.com\/(?:reel|p)\/([A-Za-z0-9_-]+)/)
+  if (ig) return { type:'instagram', id:ig[1], url }
+  return null
+}
+
+function WaIcon() {
+  return <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.554 4.118 1.528 5.848L0 24l6.35-1.524A11.955 11.955 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.003-1.371l-.36-.213-3.73.896.928-3.637-.235-.374A9.818 9.818 0 012.182 12c0-5.421 4.397-9.818 9.818-9.818 5.421 0 9.818 4.397 9.818 9.818 0 5.421-4.397 9.818-9.818 9.818z"/></svg>
+}
+
+// ─── CSS ──────────────────────────────────────────────────────────────────────
 const CSS = `
 .banner-wrap{width:100%;overflow:hidden;line-height:0;cursor:pointer;display:block}
 .top-banner{display:block;width:100%;height:70px;object-fit:cover;object-position:center}
@@ -12,11 +53,11 @@ const CSS = `
 .ticker-bar:hover .ticker-track{animation-play-state:paused}
 .ticker-group{display:flex;align-items:center;flex-shrink:0}
 .ticker-item{display:inline-flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;color:#444;padding:0 22px;white-space:nowrap}
-.ticker-item .ticker-dot{width:5px;height:5px;border-radius:50%;background:#3DFF8F;animation:pulse 2s infinite;flex-shrink:0}
-.ticker-item .ticker-val{color:#F5C800;font-weight:500}
+.ticker-item .tk-dot{width:5px;height:5px;border-radius:50%;background:#3DFF8F;animation:pulse 2s infinite;flex-shrink:0}
+.ticker-item .tk-val{color:#F5C800;font-weight:500}
 @keyframes ticker-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
-.nav-row{max-width:1200px;margin:0 auto;padding:0 20px;height:54px;display:flex;align-items:center;gap:8px}
+.nav-row{max-width:1200px;margin:0 auto;padding:0 20px;height:50px;display:flex;align-items:center;gap:8px}
 .nav{display:flex;gap:6px;align-items:center;margin-left:auto}
 .nav-links{display:flex;gap:2px;align-items:center}
 .nav-link{background:none;border:none;color:#555;padding:7px 12px;cursor:pointer;font-size:12px;font-family:'Inter',sans-serif;transition:color .15s;letter-spacing:.3px;white-space:nowrap}
@@ -25,6 +66,8 @@ const CSS = `
 .nav-btn:hover{border-color:#555;color:#EDEDEC}
 .nav-acc{background:none;border:1px solid #fff;color:#fff;padding:6px 13px;border-radius:4px;cursor:pointer;font-size:12px;font-family:'Inter',sans-serif;transition:all .15s}
 .nav-acc:hover{background:#fff;color:#000}
+.theme-btn{background:none;border:1px solid #2A2A2A;color:#666;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.theme-btn:hover{border-color:#666;color:#EDEDEC}
 .hamburger{display:none;background:none;border:1px solid #2A2A2A;color:#888;width:36px;height:36px;border-radius:5px;cursor:pointer;font-size:19px;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
 .hamburger:hover{border-color:#666;color:#EDEDEC}
 .hamburger.open{border-color:#555;color:#EDEDEC}
@@ -58,7 +101,7 @@ const CSS = `
 .f-btn:hover{border-color:#444;color:#888}
 .f-btn.on{border-color:#fff;color:#fff}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
-.card{background:#0F0F0F;border:1px solid #181818;border-radius:8px;overflow:hidden;transition:border-color .2s,transform .2s;cursor:pointer}
+.card{background:#0F0F0F;border:1px solid #181818;border-radius:8px;overflow:hidden;transition:border-color .2s,transform .2s;cursor:pointer;text-decoration:none;display:block;color:inherit}
 .card:hover{border-color:#2A2A2A;transform:translateY(-2px)}
 .card-img-w{position:relative;aspect-ratio:1/1;background:#141414;overflow:hidden}
 .card-img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
@@ -85,11 +128,10 @@ const CSS = `
 .reel-tt{flex-shrink:0;width:270px;height:480px;background:#0F0F0F;border:1px solid #1A1A1A;border-radius:8px;overflow:hidden}
 .reel-tt iframe{width:100%;height:100%;border:none;display:block}
 .reel-ig{flex-shrink:0;width:328px;background:#0F0F0F;border:1px solid #1A1A1A;border-radius:8px;overflow:hidden;min-height:420px}
-.reel-ig .instagram-media{margin:0!important;max-width:none!important;min-width:unset!important;width:100%!important}
 .empty{text-align:center;padding:56px 20px;display:flex;flex-direction:column;gap:8px;align-items:center}
 .empty p{font-size:13px;color:#2A2A2A}
 .empty a{color:#555;text-decoration:none;font-size:11px;font-family:'DM Mono',monospace;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:1px}
-.center-pg{min-height:calc(100vh - 58px);display:flex;align-items:center;justify-content:center;padding:20px}
+.center-pg{min-height:60vh;display:flex;align-items:center;justify-content:center;padding:20px}
 .login-box{background:#0F0F0F;border:1px solid #1C1C1C;border-radius:12px;padding:32px;width:100%;max-width:310px;display:flex;flex-direction:column;gap:12px}
 .login-t{font-size:18px;font-weight:600;letter-spacing:-.5px;text-align:center;color:#EDEDEC}
 .login-s{font-size:11px;color:#2A2A2A;text-align:center;font-family:'DM Mono',monospace}
@@ -135,23 +177,23 @@ const CSS = `
 .fg select option{background:#141414}
 .fg textarea{resize:vertical;min-height:64px}
 .fg small{font-size:9px;color:#222;margin-top:1px}
-.img-upload-area{border:1px dashed #1E1E1E;border-radius:6px;padding:18px;text-align:center;cursor:pointer;transition:border-color .15s;background:#0A0A0A}
-.img-upload-area:hover{border-color:#444}
-.img-preview{width:100%;max-height:160px;object-fit:contain;border-radius:4px;margin-top:10px;display:block}
+.img-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.img-slot{position:relative;aspect-ratio:1/1;border-radius:6px;overflow:hidden;border:1px solid #1A1A1A;background:#0A0A0A}
+.img-slot img{width:100%;height:100%;object-fit:cover;display:block}
+.img-slot-empty{display:flex;align-items:center;justify-content:center;border:1px dashed #1E1E1E;cursor:pointer;color:#333;font-size:22px;transition:border-color .15s}
+.img-slot-empty:hover{border-color:#444;color:#666}
+.img-slot-empty.disabled{opacity:.25;cursor:not-allowed}
+.img-remove{position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.75);color:#ff6666;border:none;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center}
+.img-remove:hover{background:#ff4444;color:#fff}
+.img-cover-badge{position:absolute;bottom:3px;left:3px;background:rgba(0,0,0,.7);color:#F5C800;font-size:8px;letter-spacing:1px;padding:2px 5px;border-radius:3px;font-family:'DM Mono',monospace}
 .form-prev{font-family:'DM Mono',monospace;font-size:11px;color:#F5C800;margin-bottom:14px;padding:8px 10px;background:rgba(245,200,0,.05);border:1px solid rgba(245,200,0,.1);border-radius:5px}
 .modal-btns{display:flex;justify-content:flex-end;gap:7px}
-.klow-footer{border-top:1px solid #0F0F0F;padding:20px;text-align:center;font-size:10px;color:#222;font-family:'DM Mono',monospace;letter-spacing:1px}
-.klow-footer a{color:#333;text-decoration:none}
-.klow-footer a:hover{color:#fff}
-
-/* ── Product detail page ── */
 .pdp{max-width:1100px;margin:0 auto;padding:32px 20px 64px;display:grid;grid-template-columns:1.1fr 1fr;gap:36px}
 .pdp-back{background:none;border:1px solid #1C1C1C;color:#555;padding:7px 14px;border-radius:5px;cursor:pointer;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:1px;margin-bottom:22px;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
 .pdp-back:hover{border-color:#555;color:#EDEDEC}
 .pdp-gallery{display:flex;flex-direction:column;gap:10px}
 .pdp-main{position:relative;aspect-ratio:1/1;background:#0F0F0F;border:1px solid #181818;border-radius:10px;overflow:hidden}
-.pdp-main img{width:100%;height:100%;object-fit:cover;display:block}
-.pdp-main .card-ph{font-size:12px}
+.pdp-main img{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in}
 .pdp-thumbs{display:flex;gap:8px;flex-wrap:wrap}
 .pdp-thumb{width:64px;height:64px;border-radius:6px;overflow:hidden;border:1px solid #1C1C1C;cursor:pointer;background:#0F0F0F;flex-shrink:0;transition:border-color .15s;padding:0}
 .pdp-thumb img{width:100%;height:100%;object-fit:cover;display:block}
@@ -162,43 +204,12 @@ const CSS = `
 .pdp-prices{display:flex;flex-direction:column;gap:2px;margin-bottom:18px}
 .pdp-usd{font-family:'DM Mono',monospace;font-size:28px;font-weight:500;color:#F5C800}
 .pdp-ars{font-family:'DM Mono',monospace;font-size:14px;color:#444}
-.pdp-stock{display:inline-block;align-self:flex-start;padding:4px 10px;border-radius:4px;font-size:10px;font-weight:600;letter-spacing:1.5px;font-family:'DM Mono',monospace;margin-bottom:18px}
 .pdp-desc{font-size:14px;color:#666;line-height:1.7;margin-bottom:22px;white-space:pre-wrap}
 .pdp-sizes-label{font-size:10px;letter-spacing:2px;color:#444;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:10px}
 .pdp-sizes{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px}
 .size-tag{border:1px solid #2A2A2A;color:#ccc;padding:7px 16px;border-radius:5px;font-size:13px;font-family:'Inter',sans-serif}
 .pdp-actions{margin-top:auto;display:flex;flex-direction:column;gap:10px}
 .shipping-banner{display:flex;align-items:center;gap:10px;background:rgba(61,255,143,.06);border:1px solid rgba(61,255,143,.18);border-radius:8px;padding:12px 14px;font-size:12px;color:#3DFF8F;font-weight:500}
-.shipping-banner .ic{font-size:18px;flex-shrink:0}
-
-/* ── Multi-image upload ── */
-.img-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
-.img-slot{position:relative;aspect-ratio:1/1;border-radius:6px;overflow:hidden;border:1px solid #1A1A1A;background:#0A0A0A}
-.img-slot img{width:100%;height:100%;object-fit:cover;display:block}
-.img-slot-empty{display:flex;align-items:center;justify-content:center;border:1px dashed #1E1E1E;cursor:pointer;color:#333;font-size:22px;transition:border-color .15s}
-.img-slot-empty:hover{border-color:#444;color:#666}
-.img-slot-empty.disabled{opacity:.3;cursor:not-allowed}
-.img-remove{position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.7);color:#ff6666;border:none;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;line-height:1}
-.img-remove:hover{background:#ff4444;color:#fff}
-.img-cover-badge{position:absolute;bottom:3px;left:3px;background:rgba(0,0,0,.7);color:#F5C800;font-size:8px;letter-spacing:1px;padding:2px 5px;border-radius:3px;font-family:'DM Mono',monospace}
-
-/* ── Theme toggle ── */
-.theme-btn{background:none;border:1px solid #2A2A2A;color:#666;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
-.theme-btn:hover{border-color:#666;color:#EDEDEC}
-
-/* ── Lightbox ── */
-.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.97);z-index:400;display:flex;align-items:center;justify-content:center;cursor:zoom-out;animation:lb-in .15s ease}
-@keyframes lb-in{from{opacity:0}to{opacity:1}}
-.lightbox-img{max-width:92vw;max-height:90vh;object-fit:contain;border-radius:4px;cursor:default;user-select:none}
-.lightbox-close{position:absolute;top:14px;right:14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:background .15s}
-.lightbox-close:hover{background:rgba(255,255,255,.2)}
-.lightbox-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:#fff;width:44px;height:44px;border-radius:50%;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;transition:background .15s}
-.lightbox-nav:hover{background:rgba(255,255,255,.2)}
-.lightbox-nav.prev{left:14px}
-.lightbox-nav.next{right:14px}
-.pdp-main img{cursor:zoom-in}
-
-/* ── Encargos ── */
 .enc-sec{border-top:1px solid #141414;padding:64px 0 80px}
 .enc-in{max-width:720px;margin:0 auto;padding:0 20px}
 .enc-title{font-size:clamp(28px,5vw,52px);font-weight:600;letter-spacing:-2px;color:#EDEDEC;line-height:.92;margin-bottom:12px}
@@ -219,36 +230,52 @@ const CSS = `
 .enc-slot-empty:hover{border-color:#555;color:#666}
 .enc-slot-empty.disabled{opacity:.25;cursor:not-allowed}
 .enc-slot .img-remove{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.75);color:#ff6666;border:none;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center}
+.enc-slot .img-remove:hover{background:#ff4444;color:#fff}
 .enc-submit{width:100%;background:#25D366;border:none;color:#fff;padding:14px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s;font-family:'Inter',sans-serif;margin-top:20px}
 .enc-submit:hover{background:#1da051}
 .enc-note{font-size:10px;color:#2A2A2A;text-align:center;margin-top:8px;font-family:'DM Mono',monospace;line-height:1.5}
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.97);z-index:400;display:flex;align-items:center;justify-content:center;cursor:zoom-out;animation:lb-in .15s ease}
+@keyframes lb-in{from{opacity:0}to{opacity:1}}
+.lightbox-img{max-width:92vw;max-height:90vh;object-fit:contain;border-radius:4px;cursor:default;user-select:none}
+.lightbox-close{position:absolute;top:14px;right:14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.lightbox-close:hover{background:rgba(255,255,255,.2)}
+.lightbox-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:#fff;width:44px;height:44px;border-radius:50%;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.lightbox-nav:hover{background:rgba(255,255,255,.2)}
+.lightbox-nav.prev{left:14px}
+.lightbox-nav.next{right:14px}
+.klow-footer{border-top:1px solid #111;padding:20px;text-align:center;font-size:10px;color:#222;font-family:'DM Mono',monospace;letter-spacing:1px}
+.klow-footer a{color:#333;text-decoration:none}
+.klow-footer a:hover{color:#fff}
 
-/* ── LIGHT MODE ── */
+/* LIGHT MODE */
 html.light body{background:#F5F4F0;color:#111}
 html.light .header{background:rgba(245,244,240,.97);border-bottom-color:#DDDBD5}
-html.light .ticker-bar{border-bottom-color:#DDDBD5}
+html.light .ticker-bar{border-bottom-color:#DDDBD5;background:#EBEBEB}
 html.light .ticker-item{color:#BBB}
-html.light .ticker-val{color:#9A7200}
+html.light .ticker-item .tk-val{color:#9A7200}
+html.light .nav-link{color:#888}
+html.light .nav-link:hover{color:#111}
 html.light .nav-btn{border-color:#CCC;color:#888}
 html.light .nav-btn:hover{border-color:#888;color:#111}
 html.light .nav-acc{border-color:#111;color:#111}
 html.light .nav-acc:hover{background:#111;color:#fff}
 html.light .theme-btn{border-color:#CCC;color:#888}
 html.light .theme-btn:hover{border-color:#888;color:#111}
+html.light .hamburger{border-color:#CCC;color:#888}
+html.light .hamburger:hover,.html.light .hamburger.open{border-color:#888;color:#111}
+html.light .mob-menu{background:rgba(245,244,240,.99);border-bottom-color:#DDD}
+html.light .mob-link{color:#777;border-bottom-color:#EEE}
+html.light .mob-link:hover{color:#111;background:rgba(0,0,0,.03)}
 html.light .hero-tag{color:#AAA}
 html.light .hero-h{color:#111}
-html.light .hero-h em{color:#111}
 html.light .hero-desc{color:#777}
 html.light .hero-ig{color:#333;border-bottom-color:rgba(0,0,0,.2)}
-html.light .hero-ig:hover{border-bottom-color:#111}
 html.light .btn-hero{background:#111;color:#fff}
-html.light .btn-hero:hover{background:#333}
 html.light .feats{background:#EEECEA;border-color:#DDDBD5}
 html.light .feat-t{color:#111}
 html.light .feat-d{color:#888}
 html.light .sec-t{color:#AAA}
 html.light .f-btn{border-color:#DDD;color:#AAA}
-html.light .f-btn:hover{border-color:#888;color:#555}
 html.light .f-btn.on{border-color:#111;color:#111}
 html.light .card{background:#fff;border-color:#E5E3DE}
 html.light .card:hover{border-color:#B0AEA8}
@@ -256,13 +283,10 @@ html.light .card-img-w{background:#F0EEE8}
 html.light .card-ph{color:#CCCAC4}
 html.light .card-brand{color:#BBB}
 html.light .card-name{color:#111}
-html.light .card-desc{color:#AAA}
-html.light .card-sizes{color:#AAA}
+html.light .card-desc,.html.light .card-sizes{color:#AAA}
 html.light .p-usd{color:#9A7200}
 html.light .p-ars{color:#AAA}
 html.light .stock-b.out{background:rgba(0,0,0,.05);color:#AAA;border-color:rgba(0,0,0,.1)}
-html.light .empty p{color:#AAA}
-html.light .empty a{color:#888;border-bottom-color:rgba(0,0,0,.15)}
 html.light .reels-sec{border-top-color:#DDDBD5}
 html.light .reel-tt,.html.light .reel-ig{background:#F0EEE8;border-color:#DDD}
 html.light .center-pg{background:#F5F4F0}
@@ -271,39 +295,26 @@ html.light .login-t{color:#111}
 html.light .login-s{color:#BBB}
 html.light .f-in{background:#F5F4F0;border-color:#DDD;color:#111}
 html.light .f-in:focus{border-color:#111}
-html.light .f-in.err{border-color:#e03333}
 html.light .admin-t{color:#111}
 html.light .tabs{border-color:#DDD}
 html.light .tab{color:#AAA}
 html.light .tab.on{background:#111;color:#fff}
 html.light .a-row{background:#fff;border-color:#E5E3DE}
-html.light .a-row:hover{border-color:#B0AEA8}
-html.light .a-ph{background:#F0EEE8;color:#CCCAC4}
 html.light .a-name{color:#111}
 html.light .a-meta{color:#BBB}
 html.light .modal{background:#fff;border-color:#E0DED8}
 html.light .modal-t{color:#111}
-html.light .fg label,.html.light .field-box{color:#AAA}
+html.light .fg label,.html.light .fg .field-box{color:#AAA}
 html.light .fg input,.html.light .fg select,.html.light .fg textarea{background:#F5F4F0;border-color:#DDD;color:#111}
 html.light .fg input:focus,.html.light .fg select:focus,.html.light .fg textarea:focus{border-color:#111}
-html.light .fg select option{background:#fff;color:#111}
 html.light .img-slot,.html.light .img-slot-empty{background:#F0EEE8;border-color:#DDD}
-html.light .img-slot-empty{color:#CCC}
-html.light .img-slot-empty:hover{border-color:#888;color:#888}
 html.light .btn-gho{border-color:#DDD;color:#888}
-html.light .btn-gho:hover{border-color:#888;color:#111}
 html.light .btn-set{border-color:#DDD;color:#888}
-html.light .btn-set:hover{border-color:#888;color:#111}
 html.light .btn-ed{border-color:#DDD;color:#888}
 html.light .btn-ed:hover{border-color:#9A7200;color:#9A7200}
-html.light .form-prev{background:rgba(154,114,0,.05);border-color:rgba(154,114,0,.15)}
-html.light .klow-footer{border-top-color:#DDD;color:#BBB}
-html.light .klow-footer a{color:#888}
-html.light .klow-footer a:hover{color:#111}
-html.light .pdp-back{border-color:#DDD;color:#888}
-html.light .pdp-back:hover{border-color:#888;color:#111}
 html.light .pdp-main{background:#F0EEE8;border-color:#E0DED8}
 html.light .pdp-thumb{border-color:#DDD;background:#F0EEE8}
+html.light .pdp-back{border-color:#DDD;color:#888}
 html.light .pdp-brand{color:#AAA}
 html.light .pdp-name{color:#111}
 html.light .pdp-usd{color:#9A7200}
@@ -316,362 +327,347 @@ html.light .enc-title{color:#111}
 html.light .enc-sub{color:#888}
 html.light .enc-grid label,.html.light .enc-grid .field-box{color:#AAA}
 html.light .enc-grid input,.html.light .enc-grid select,.html.light .enc-grid textarea{background:#F5F4F0;border-color:#DDD;color:#111}
-html.light .enc-grid input:focus,.html.light .enc-grid select:focus,.html.light .enc-grid textarea:focus{border-color:#111}
-html.light .enc-grid select option{background:#fff;color:#111}
 html.light .enc-slot,.html.light .enc-slot-empty{background:#F0EEE8;border-color:#DDD}
-html.light .enc-slot-empty{color:#CCC}
-html.light .enc-slot-empty:hover{border-color:#888;color:#888}
 html.light .enc-note{color:#BBB}
+html.light .klow-footer{border-top-color:#DDD;color:#BBB}
+html.light .klow-footer a{color:#888}
 
-/* ── Light mode nav overrides ── */
-html.light .nav-link{color:#888}
-html.light .nav-link:hover{color:#111}
-html.light .hamburger{border-color:#CCC;color:#888}
-html.light .hamburger:hover{border-color:#888;color:#111}
-html.light .mob-menu{background:rgba(245,244,240,.99);border-bottom-color:#DDD}
-html.light .mob-link{color:#777;border-bottom-color:#EEE}
-html.light .mob-link:hover{color:#111;background:rgba(0,0,0,.03)}
-
-/* ── Tablet ── */
+/* TABLET */
 @media(max-width:900px){
   .nav-links{display:none}
   .hamburger{display:flex}
 }
 
-/* ── Mobile ── */
+/* MOBILE */
 @media(max-width:600px){
   .top-banner{height:46px}
   .nav-row{padding:0 14px;gap:8px}
-  .ticker-item{font-size:10px;letter-spacing:1.5px;padding:0 16px}
-
+  .ticker-item{font-size:10px;padding:0 14px}
   .hero{padding:36px 14px 28px}
   .hero-h{letter-spacing:-2px}
-  .hero-links{gap:10px}
-
   .feats-in{padding:16px 14px;grid-template-columns:1fr 1fr;gap:12px}
   .feat-d{display:none}
-
   .sec{padding:24px 14px 40px}
-  .sec-hd{margin-bottom:16px}
   .grid{grid-template-columns:repeat(2,1fr);gap:10px}
   .card-body{padding:10px 11px 12px}
   .card-name{font-size:12px}
-  .card-brand{font-size:9px}
-  .card-sizes{font-size:9px;margin-bottom:8px}
   .p-usd{font-size:14px}
-  .p-ars{font-size:10px}
-  .card-prices{margin-bottom:9px}
   .btn-wa{font-size:11px;padding:8px 10px}
-  .filter-bar{gap:4px}
-  .f-btn{padding:4px 9px;font-size:9px}
-
   .reels-in{padding:0 14px}
   .reel-tt{width:220px;height:390px}
-
   .pdp{grid-template-columns:1fr;padding:16px 14px 48px;gap:20px}
   .pdp-name{font-size:22px}
   .pdp-usd{font-size:22px}
-  .pdp-thumb{width:52px;height:52px}
-
   .enc-grid{grid-template-columns:1fr}
   .enc-in{padding:0 14px}
-  .enc-title{letter-spacing:-1.5px}
-
   .admin{padding:16px 14px 40px}
   .admin-hd{flex-direction:column;align-items:flex-start}
   .admin-acts{width:100%}
-  .admin-acts .btn-pri,.admin-acts .btn-set{flex:1;text-align:center}
-  .a-row{flex-wrap:wrap}
-  .a-btns{width:100%;justify-content:flex-end;margin-top:6px}
-
   .fg{grid-template-columns:1fr}
-  .field-box{grid-column:1/-1}
-  .img-grid{grid-template-columns:repeat(5,1fr)}
-
   .modal{padding:20px 16px}
   .modal-btns{flex-direction:column-reverse}
   .modal-btns .btn-gho,.modal-btns .btn-pri{width:100%;text-align:center}
+  .a-row{flex-wrap:wrap}
+  .a-btns{width:100%;justify-content:flex-end;margin-top:6px}
 }
 `
 
-// ─── Helpers ─────────────────────────────────────────────────────
-function uid() { return Math.random().toString(36).slice(2, 9) }
-function blank() { return { name: '', brand: '', price: '', sizes: '', stock: '1', images: [], category: 'ropa', description: '' } }
-function blankEnc() { return { nombre: '', tipo: '', talle: '', color: '', link: '', pagina: '', detalles: '' } }
-
-async function api(path, opts = {}) {
-  const res = await fetch(`/api/${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...opts,
-  })
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new Error(body.error || `API error ${res.status}`)
-  }
-  return res.json()
-}
-
-async function compressImg(file, max = 900) {
-  return new Promise(res => {
-    const img = new Image(), url = URL.createObjectURL(file)
-    img.onload = () => {
-      const r = Math.min(max / img.width, max / img.height, 1)
-      const c = document.createElement('canvas')
-      c.width = img.width * r; c.height = img.height * r
-      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
-      URL.revokeObjectURL(url)
-      res(c.toDataURL('image/jpeg', 0.75))
-    }
-    img.src = url
-  })
-}
-
-function parseSocial(raw) {
-  const url = raw.trim()
-  const tt = url.match(/tiktok\.com\/@[^/]+\/video\/(\d+)/)
-  if (tt) return { type: 'tiktok', id: tt[1], url }
-  const ig = url.match(/instagram\.com\/(?:reel|p)\/([A-Za-z0-9_-]+)/)
-  if (ig) return { type: 'instagram', id: ig[1], url }
-  return null
-}
-
-function WaIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-      <path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.554 4.118 1.528 5.848L0 24l6.35-1.524A11.955 11.955 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.003-1.371l-.36-.213-3.73.896.928-3.637-.235-.374A9.818 9.818 0 012.182 12c0-5.421 4.397-9.818 9.818-9.818 5.421 0 9.818 4.397 9.818 9.818 0 5.421-4.397 9.818-9.818 9.818z"/>
-    </svg>
-  )
-}
-
-// ─── Main App ─────────────────────────────────────────────────────
-export default function App() {
-  const [prods, setProds] = useState([])
-  const [socials, setSocials] = useState([])
-  const [sett, setSett] = useState(DEF_SETTINGS)
-  const [blue, setBlue] = useState(null)
-  const [view, setView] = useState('home')
-  const [isAdm, setIsAdm] = useState(false)
-  const [pass, setPass] = useState('')
-  const [passErr, setPassErr] = useState(false)
-  const [pForm, setPForm] = useState(blank())
-  const [editId, setEditId] = useState(null)
-  const [showPF, setShowPF] = useState(false)
-  const [cat, setCat] = useState('all')
-  const [settF, setSettF] = useState(null)
-  const [tab, setTab] = useState('prods')
-  const [socUrl, setSocUrl] = useState('')
-  const [socErr, setSocErr] = useState('')
-  const [selProd, setSelProd] = useState(null)
+// ─── Product Detail Page Component (defined outside App to avoid hook issues) ─
+function ProductPage({ prods, blue, sett }) {
+  const { id } = useParams()
+  const navigate = useNavigate()
   const [pdpImg, setPdpImg] = useState(0)
   const [lightImg, setLightImg] = useState(null)
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('klow-theme') !== 'light')
-  const [encForm, setEncForm] = useState(blankEnc())
-  const [encPhotos, setEncPhotos] = useState([])
-  const [menuOpen, setMenuOpen] = useState(false)
 
-  // Inject CSS once
-  useEffect(() => {
-    const el = document.createElement('style')
-    el.textContent = CSS
-    document.head.appendChild(el)
-    return () => el.remove()
-  }, [])
+  const prod = prods.find(p => p.id === id)
 
-  // Load data from the API (Postgres via Vercel/Neon)
-  useEffect(() => {
-    api('products').then(setProds).catch(() => {})
-    api('socials').then(setSocials).catch(() => {})
-    api('settings').then(s => setSett(x => ({ ...x, ...s }))).catch(() => {})
-    fetchBlue()
-    const iv = setInterval(fetchBlue, 5 * 60 * 1000)
-    return () => clearInterval(iv)
-  }, [])
+  useEffect(() => { setPdpImg(0) }, [id])
 
-  // Load Instagram embed.js when IG reels are present
   useEffect(() => {
-    const hasIG = socials.some(s => s.type === 'instagram')
-    if (!hasIG) return
-    if (!document.getElementById('ig-embed')) {
-      const sc = document.createElement('script')
-      sc.id = 'ig-embed'; sc.async = true
-      sc.src = '//www.instagram.com/embed.js'
-      document.body.appendChild(sc)
-    } else if (window.instgrm) {
-      window.instgrm.Embeds.process()
-    }
-  }, [socials, view])
-
-  // Dark / light mode class on <html>
-  useEffect(() => {
-    document.documentElement.classList.toggle('light', !darkMode)
-    localStorage.setItem('klow-theme', darkMode ? 'dark' : 'light')
-  }, [darkMode])
-
-  // Close lightbox on Escape, close menu on scroll
-  useEffect(() => {
-    const h = e => { if (e.key === 'Escape') { setLightImg(null); setMenuOpen(false) } }
-    const onScroll = () => setMenuOpen(false)
+    const h = e => { if (e.key === 'Escape') setLightImg(null) }
     window.addEventListener('keydown', h)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => { window.removeEventListener('keydown', h); window.removeEventListener('scroll', onScroll) }
-  }, []) 
-
-  const fetchBlue = async () => {
-    try {
-      const r = await fetch('https://api.bluelytics.com.ar/v2/latest')
-      const d = await r.json()
-      setBlue(d.blue.value_sell)
-    } catch {}
-  }
-
-  // (Lectura/escritura ahora se hace directo contra /api en cada acción)
-
-  const login = async () => {
-    try {
-      const r = await api('login', { method: 'POST', body: JSON.stringify({ password: pass }) })
-      if (r.ok) { setIsAdm(true); setView('admin'); setPass(''); setPassErr(false) }
-      else setPassErr(true)
-    } catch {
-      setPassErr(true)
-    }
-  }
+    return () => window.removeEventListener('keydown', h)
+  }, [])
 
   const toARS = usd => blue ? '$ ' + Math.round(Number(usd) * blue).toLocaleString('es-AR') : '—'
+  const inStock = p => Number(p.stock) > 0
 
-  const onWA = (p, e) => {
-    if (e) e.stopPropagation()
-    const msg = `Hola! Me gustó esta prenda, ¿sigue en stock?\n\n*${p.name}*\nPrecio: USD $${p.price}`
-    const num = sett.whatsapp.replace(/\D/g, '')
+  const onWA = () => {
+    if (!prod) return
+    const msg = `Hola! Me gustó esta prenda, ¿sigue en stock?\n\n*${prod.name}*\nPrecio: USD $${prod.price}`
+    const num = (sett.whatsapp || '').replace(/\D/g, '')
     window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank')
   }
 
-  const openAdd = () => { setPForm(blank()); setEditId(null); setShowPF(true) }
-  const openEdit = p => { setPForm({ ...p }); setEditId(p.id); setShowPF(true) }
-
-  const handleImgUpload = async files => {
-    const room = 5 - (pForm.images?.length || 0)
-    if (room <= 0) return
-    const list = Array.from(files).slice(0, room)
-    const compressed = await Promise.all(list.map(f => compressImg(f)))
-    setPForm(f => ({ ...f, images: [...(f.images || []), ...compressed].slice(0, 5) }))
-  }
-  const removeImg = idx => setPForm(f => ({ ...f, images: f.images.filter((_, i) => i !== idx) }))
-
-  const openProduct = p => { setSelProd(p); setPdpImg(0); setView('product') }
-
-  const savePF = async () => {
-    if (!pForm.name || !pForm.price) return
-    try {
-      if (editId) {
-        await api(`products?id=${editId}`, { method: 'PUT', body: JSON.stringify(pForm) })
-        setProds(prods.map(p => p.id === editId ? { ...pForm, id: editId } : p))
-      } else {
-        const created = await api('products', { method: 'POST', body: JSON.stringify(pForm) })
-        setProds([created, ...prods])
-      }
-      setShowPF(false)
-    } catch {
-      alert('No se pudo guardar el producto. Probá de nuevo.')
-    }
+  if (prods.length === 0) {
+    return <div className="center-pg"><p style={{color:'#444',fontFamily:'DM Mono'}}>Cargando...</p></div>
   }
 
-  const delP = async id => {
-    if (!confirm('¿Eliminar producto?')) return
-    try {
-      await api(`products?id=${id}`, { method: 'DELETE' })
-      setProds(prods.filter(p => p.id !== id))
-    } catch {
-      alert('No se pudo eliminar el producto.')
-    }
-  }
-
-  const addSoc = async () => {
-    const parsed = parseSocial(socUrl)
-    if (!parsed) { setSocErr('URL no reconocida. Pegá un link de TikTok o Instagram Reel.'); return }
-    if (socials.find(s => s.id === parsed.id)) { setSocErr('Ya existe ese video.'); return }
-    try {
-      const created = await api('socials', { method: 'POST', body: JSON.stringify(parsed) })
-      setSocials([...socials, created])
-      setSocUrl(''); setSocErr('')
-    } catch {
-      setSocErr('No se pudo agregar. Probá de nuevo.')
-    }
-  }
-
-  const delSoc = async u => {
-    try {
-      await api(`socials?uid=${u}`, { method: 'DELETE' })
-      setSocials(socials.filter(s => s.uid !== u))
-    } catch {
-      alert('No se pudo borrar.')
-    }
-  }
-  const goTo = id => {
-    setMenuOpen(false)
-    if (view !== 'home') {
-      setView('home')
-      setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
-    } else {
-      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-  }
-
-  const vis = cat === 'all' ? prods : prods.filter(p => p.category === cat)
-  const inStock = p => Number(p.stock) > 0
-
-  const handleEncPhotos = async files => {
-    const room = 3 - encPhotos.length
-    if (room <= 0) return
-    const list = Array.from(files).slice(0, room)
-    const compressed = await Promise.all(list.map(f => compressImg(f, 600)))
-    setEncPhotos(prev => [...prev, ...compressed].slice(0, 3))
-  }
-
-  const submitEncargo = () => {
-    const { nombre, tipo, talle, color, link, pagina, detalles } = encForm
-    if (!nombre || !tipo || !talle || !color) {
-      alert('Completá los campos obligatorios: Producto, Tipo, Talle y Color.')
-      return
-    }
-    const lines = [
-      `Hola! Quiero hacer un encargo 🛒`,
-      ``,
-      `📦 *Producto:* ${nombre}`,
-      `📂 *Tipo:* ${tipo}`,
-      `📏 *Talle:* ${talle}`,
-      `🎨 *Color:* ${color}`,
-      link ? `🔗 *Link de referencia:* ${link}` : null,
-      pagina ? `🌐 *Lo vi en:* ${pagina}` : null,
-      detalles ? `📝 *Detalles:* ${detalles}` : null,
-      encPhotos.length > 0 ? `📸 Tengo ${encPhotos.length} foto${encPhotos.length > 1 ? 's' : ''} de referencia para enviarte en este chat.` : null,
-    ].filter(Boolean).join('\n')
-    const num = sett.whatsapp.replace(/\D/g, '')
-    window.open(`https://wa.me/${num}?text=${encodeURIComponent(lines)}`, '_blank')
+  if (!prod) {
+    return (
+      <div className="center-pg" style={{flexDirection:'column',gap:14}}>
+        <p style={{color:'#555'}}>Producto no encontrado.</p>
+        <button className="btn-pri" onClick={() => navigate('/')}>Volver al inicio</button>
+      </div>
+    )
   }
 
   return (
     <>
-      {/* ── BANNER (scrolls away with the page) ── */}
-      <div
-        className="banner-wrap"
-        onClick={() => { setView('home'); setMenuOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
-      >
+      <div className="pdp">
+        <div style={{ gridColumn: '1 / -1' }}>
+          <button className="pdp-back" onClick={() => navigate('/')}>← Volver al catálogo</button>
+        </div>
+
+        <div className="pdp-gallery">
+          <div className="pdp-main">
+            {prod.images?.length
+              ? <img src={prod.images[pdpImg]} alt={prod.name}
+                  onClick={() => setLightImg({ imgs: prod.images, idx: pdpImg })}
+                  onError={e => { e.target.style.display = 'none' }} />
+              : <div className="card-ph" style={{ width:'100%',height:'100%',display:'flex' }}>SIN IMAGEN</div>}
+          </div>
+          {prod.images?.length > 1 && (
+            <div className="pdp-thumbs">
+              {prod.images.map((img, i) => (
+                <button key={i} className={`pdp-thumb${i === pdpImg ? ' on' : ''}`} onClick={() => setPdpImg(i)}>
+                  <img src={img} alt={`${prod.name} ${i+1}`} />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="pdp-info">
+          {prod.brand && <p className="pdp-brand">{prod.brand}</p>}
+          <h1 className="pdp-name">{prod.name}</h1>
+          <div className="pdp-prices">
+            <span className="pdp-usd">USD ${Number(prod.price).toLocaleString('en-US')}</span>
+            <span className="pdp-ars">{toARS(prod.price)}</span>
+          </div>
+          <span className={`stock-b ${inStock(prod) ? 'in' : 'out'}`} style={{display:'inline-block',alignSelf:'flex-start',marginBottom:18}}>
+            {inStock(prod) ? 'EN STOCK' : 'AGOTADO'}
+          </span>
+          {prod.description && <p className="pdp-desc">{prod.description}</p>}
+          {prod.sizes && (
+            <>
+              <p className="pdp-sizes-label">Talles disponibles</p>
+              <div className="pdp-sizes">
+                {prod.sizes.split(/[,/]/).map(s => s.trim()).filter(Boolean).map(s => (
+                  <span key={s} className="size-tag">{s}</span>
+                ))}
+              </div>
+            </>
+          )}
+          <div className="pdp-actions">
+            <button className="btn-wa" onClick={onWA}><WaIcon /> Consultar por WhatsApp</button>
+            <div className="shipping-banner"><span style={{fontSize:18}}>📦</span> Hacemos envíos gratis a todo el país</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Lightbox */}
+      {lightImg && (
+        <div className="lightbox" onClick={() => setLightImg(null)}>
+          <button className="lightbox-close" onClick={() => setLightImg(null)}>✕</button>
+          {lightImg.imgs.length > 1 && (
+            <button className="lightbox-nav prev" onClick={e => { e.stopPropagation(); setLightImg(l => ({...l, idx:(l.idx-1+l.imgs.length)%l.imgs.length})) }}>‹</button>
+          )}
+          <img className="lightbox-img" src={lightImg.imgs[lightImg.idx]} alt="" onClick={e => e.stopPropagation()} />
+          {lightImg.imgs.length > 1 && (
+            <button className="lightbox-nav next" onClick={e => { e.stopPropagation(); setLightImg(l => ({...l, idx:(l.idx+1)%l.imgs.length})) }}>›</button>
+          )}
+        </div>
+      )}
+    </>
+  )
+}
+
+// ─── Main App ─────────────────────────────────────────────────────────────────
+export default function App() {
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  const [prods, setProds] = useState([])
+  const [socials, setSocials] = useState([])
+  const [sett, setSett] = useState(DEF_SETTINGS)
+  const [blue, setBlue] = useState(null)
+  const [isAdm, setIsAdm] = useState(() => { try { return sessionStorage.getItem('klow_adm') === '1' } catch { return false } })
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [pass, setPass] = useState('')
+  const [passErr, setPassErr] = useState(false)
+  const [darkMode, setDarkMode] = useState(() => { try { return localStorage.getItem('klow-theme') !== 'light' } catch { return true } })
+  const [encForm, setEncForm] = useState(blankEnc())
+  const [encPhotos, setEncPhotos] = useState([])
+  const [cat, setCat] = useState('all')
+  const [pForm, setPForm] = useState(blank())
+  const [editId, setEditId] = useState(null)
+  const [showPF, setShowPF] = useState(false)
+  const [settF, setSettF] = useState(null)
+  const [tab, setTab] = useState('prods')
+  const [socUrl, setSocUrl] = useState('')
+  const [socErr, setSocErr] = useState('')
+
+  // Inject CSS once
+  useEffect(() => {
+    const el = document.createElement('style'); el.textContent = CSS; document.head.appendChild(el)
+    return () => el.remove()
+  }, [])
+
+  // Load data from API
+  useEffect(() => {
+    api('products').then(setProds).catch(() => {})
+    api('socials').then(setSocials).catch(() => {})
+    api('settings').then(s => setSett(x => ({...x,...s}))).catch(() => {})
+    fetchBlue()
+    const iv = setInterval(fetchBlue, 5*60*1000)
+    return () => clearInterval(iv)
+  }, [])
+
+  // Dark mode
+  useEffect(() => {
+    document.documentElement.classList.toggle('light', !darkMode)
+    try { localStorage.setItem('klow-theme', darkMode ? 'dark' : 'light') } catch {}
+  }, [darkMode])
+
+  // Close menu on route change or scroll
+  useEffect(() => { setMenuOpen(false) }, [location.pathname])
+  useEffect(() => {
+    const h = () => setMenuOpen(false)
+    window.addEventListener('scroll', h, { passive: true })
+    return () => window.removeEventListener('scroll', h)
+  }, [])
+
+  // Instagram embed
+  useEffect(() => {
+    const hasIG = socials.some(s => s.type === 'instagram')
+    if (!hasIG) return
+    if (!document.getElementById('ig-embed')) {
+      const sc = document.createElement('script'); sc.id='ig-embed'; sc.async=true; sc.src='//www.instagram.com/embed.js'; document.body.appendChild(sc)
+    } else if (window.instgrm) { window.instgrm.Embeds.process() }
+  }, [socials, location.pathname])
+
+  const fetchBlue = async () => {
+    try { const r = await fetch('https://api.bluelytics.com.ar/v2/latest'); const d = await r.json(); setBlue(d.blue.value_sell) } catch {}
+  }
+
+  const toARS = usd => blue ? '$ ' + Math.round(Number(usd)*blue).toLocaleString('es-AR') : '—'
+  const inStock = p => Number(p.stock) > 0
+
+  const goTo = id => {
+    if (location.pathname !== '/') {
+      navigate('/')
+      setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior:'smooth', block:'start' }), 80)
+    } else {
+      document.getElementById(id)?.scrollIntoView({ behavior:'smooth', block:'start' })
+    }
+  }
+
+  const login = async () => {
+    try {
+      const r = await api('login', { method:'POST', body: JSON.stringify({ password: pass }) })
+      if (r.ok) { setIsAdm(true); try { sessionStorage.setItem('klow_adm','1') } catch {}; navigate('/admin'); setPass(''); setPassErr(false) }
+      else setPassErr(true)
+    } catch { setPassErr(true) }
+  }
+
+  const logout = () => { setIsAdm(false); try { sessionStorage.removeItem('klow_adm') } catch {}; navigate('/') }
+
+  const onWA = (p, e) => {
+    if (e) e.stopPropagation()
+    const msg = `Hola! Me gustó esta prenda, ¿sigue en stock?\n\n*${p.name}*\nPrecio: USD $${p.price}`
+    const num = (sett.whatsapp||'').replace(/\D/g,'')
+    window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank')
+  }
+
+  const saveProds = async n => { setProds(n); }
+  const saveSocs  = async n => { setSocials(n); }
+
+  const openAdd = () => { setPForm(blank()); setEditId(null); setShowPF(true) }
+  const openEdit = p => { setPForm({...p}); setEditId(p.id); setShowPF(true) }
+
+  const handleImgUpload = async files => {
+    const room = 5-(pForm.images?.length||0); if (room<=0) return
+    const compressed = await Promise.all(Array.from(files).slice(0,room).map(f => compressImg(f)))
+    setPForm(f => ({...f, images:[...(f.images||[]),...compressed].slice(0,5)}))
+  }
+  const removeImg = idx => setPForm(f => ({...f, images: f.images.filter((_,i)=>i!==idx)}))
+
+  const savePF = async () => {
+    if (!pForm.name||!pForm.price) return
+    try {
+      if (editId) {
+        await api(`products?id=${editId}`,{method:'PUT',body:JSON.stringify(pForm)})
+        setProds(prods.map(p=>p.id===editId?{...pForm,id:editId}:p))
+      } else {
+        const created = await api('products',{method:'POST',body:JSON.stringify(pForm)})
+        setProds([created,...prods])
+      }
+      setShowPF(false)
+    } catch { alert('No se pudo guardar. Probá de nuevo.') }
+  }
+
+  const delP = async id => {
+    if (!confirm('¿Eliminar producto?')) return
+    try { await api(`products?id=${id}`,{method:'DELETE'}); setProds(prods.filter(p=>p.id!==id)) }
+    catch { alert('No se pudo eliminar.') }
+  }
+
+  const addSoc = async () => {
+    const parsed = parseSocial(socUrl)
+    if (!parsed) { setSocErr('URL no reconocida.'); return }
+    if (socials.find(s=>s.id===parsed.id)) { setSocErr('Ya existe ese video.'); return }
+    try { const c = await api('socials',{method:'POST',body:JSON.stringify(parsed)}); setSocials([...socials,c]); setSocUrl(''); setSocErr('') }
+    catch { setSocErr('Error al agregar.') }
+  }
+
+  const delSoc = async u => {
+    try { await api(`socials?uid=${u}`,{method:'DELETE'}); setSocials(socials.filter(s=>s.uid!==u)) }
+    catch { alert('Error al borrar.') }
+  }
+
+  const handleEncPhotos = async files => {
+    const room = 3-encPhotos.length; if (room<=0) return
+    const compressed = await Promise.all(Array.from(files).slice(0,room).map(f => compressImg(f,600)))
+    setEncPhotos(prev => [...prev,...compressed].slice(0,3))
+  }
+
+  const submitEncargo = () => {
+    const {nombre,tipo,talle,color,link,pagina,detalles} = encForm
+    if (!nombre||!tipo||!talle||!color) { alert('Completá los campos obligatorios: Producto, Tipo, Talle y Color.'); return }
+    const lines = [
+      `Hola! Quiero hacer un encargo 🛒\n`,
+      `📦 *Producto:* ${nombre}`,
+      `📂 *Tipo:* ${tipo}`,
+      `📏 *Talle:* ${talle}`,
+      `🎨 *Color:* ${color}`,
+      link ? `🔗 *Link:* ${link}` : null,
+      pagina ? `🌐 *Lo vi en:* ${pagina}` : null,
+      detalles ? `📝 *Detalles:* ${detalles}` : null,
+      encPhotos.length > 0 ? `📸 Tengo ${encPhotos.length} foto${encPhotos.length>1?'s':''} de referencia para enviarte.` : null,
+    ].filter(Boolean).join('\n')
+    const num = (sett.whatsapp||'').replace(/\D/g,'')
+    window.open(`https://wa.me/${num}?text=${encodeURIComponent(lines)}`, '_blank')
+  }
+
+  const vis = cat==='all' ? prods : prods.filter(p=>p.category===cat)
+
+  // ─── Shared Nav ────────────────────────────────────────────────────────────
+  const Header = (
+    <>
+      <div className="banner-wrap" onClick={() => { navigate('/'); window.scrollTo({top:0,behavior:'smooth'}) }}>
         <img src="/banner.jpg" alt="KLOW Streetwear" className="top-banner" />
       </div>
 
-      {/* ── STICKY HEADER: ticker + nav ── */}
       <header className="header">
-        {/* Scrolling dollar-blue ticker */}
         <div className="ticker-bar">
           <div className="ticker-track">
-            {[0, 1].map(g => (
+            {[0,1].map(g => (
               <div className="ticker-group" key={g}>
-                {Array.from({ length: 6 }).map((_, i) => (
+                {Array.from({length:6}).map((_,i) => (
                   <span className="ticker-item" key={i}>
-                    <span className="ticker-dot" />
-                    USD BLUE VENTA{' '}
-                    <span className="ticker-val">{blue ? `$${blue.toLocaleString('es-AR')}` : '...'}</span>
+                    <span className="tk-dot" />
+                    USD BLUE VENTA <span className="tk-val">{blue?`$${blue.toLocaleString('es-AR')}`:'...'}</span>
                   </span>
                 ))}
               </div>
@@ -679,516 +675,288 @@ export default function App() {
           </div>
         </div>
 
-        {/* Nav row: Stock / Encargos / Admin / theme */}
         <div className="nav-row">
           <div className="nav-links">
             <button className="nav-link" onClick={() => goTo('stock')}>Stock</button>
             <button className="nav-link" onClick={() => goTo('encargos')}>Encargos</button>
           </div>
-
           <nav className="nav">
-            <button className="theme-btn" onClick={() => setDarkMode(d => !d)} title={darkMode ? 'Modo claro' : 'Modo oscuro'}>
-              {darkMode ? '☀️' : '🌙'}
-            </button>
-            {isAdm ? (
-              <>
-                <button className="nav-btn" onClick={() => { setView('admin'); setMenuOpen(false) }}>Panel</button>
-                <button className="nav-btn" onClick={() => { setIsAdm(false); setView('home'); setMenuOpen(false) }}>Salir</button>
-              </>
-            ) : (
-              <button className="nav-acc" onClick={() => { setView('login'); setMenuOpen(false) }}>Admin</button>
-            )}
-            {/* Hamburger */}
-            <button className={`hamburger${menuOpen ? ' open' : ''}`} onClick={() => setMenuOpen(o => !o)}>
-              {menuOpen ? '✕' : '☰'}
+            <button className="theme-btn" onClick={() => setDarkMode(d=>!d)}>{darkMode?'☀️':'🌙'}</button>
+            {isAdm
+              ? <><button className="nav-btn" onClick={() => navigate('/admin')}>Panel</button><button className="nav-btn" onClick={logout}>Salir</button></>
+              : <button className="nav-acc" onClick={() => navigate('/login')}>Admin</button>
+            }
+            <button className={`hamburger${menuOpen?' open':''}`} onClick={() => setMenuOpen(o=>!o)}>
+              {menuOpen?'✕':'☰'}
             </button>
           </nav>
         </div>
 
-        {/* Mobile dropdown menu */}
-        <div className={`mob-menu${menuOpen ? ' open' : ''}`}>
-          <button className="mob-link" onClick={() => goTo('stock')}>
-            <span className="mob-ico">👟</span> Stock disponible
-          </button>
-          <button className="mob-link" onClick={() => goTo('encargos')}>
-            <span className="mob-ico">📋</span> Encargos
-          </button>
-          <button className="mob-link" onClick={() => { setDarkMode(d => !d); setMenuOpen(false) }}>
-            <span className="mob-ico">{darkMode ? '☀️' : '🌙'}</span> {darkMode ? 'Modo claro' : 'Modo oscuro'}
-          </button>
-          {isAdm ? (
-            <>
-              <button className="mob-link" onClick={() => { setView('admin'); setMenuOpen(false) }}>
-                <span className="mob-ico">⚙️</span> Panel admin
-              </button>
-              <button className="mob-link" onClick={() => { setIsAdm(false); setView('home'); setMenuOpen(false) }}>
-                <span className="mob-ico">🚪</span> Cerrar sesión
-              </button>
-            </>
-          ) : (
-            <button className="mob-link" onClick={() => { setView('login'); setMenuOpen(false) }}>
-              <span className="mob-ico">🔐</span> Admin
-            </button>
-          )}
+        <div className={`mob-menu${menuOpen?' open':''}`}>
+          <button className="mob-link" onClick={() => goTo('stock')}><span className="mob-ico">👟</span> Stock disponible</button>
+          <button className="mob-link" onClick={() => goTo('encargos')}><span className="mob-ico">📋</span> Encargos</button>
+          <button className="mob-link" onClick={() => { setDarkMode(d=>!d); setMenuOpen(false) }}><span className="mob-ico">{darkMode?'☀️':'🌙'}</span> {darkMode?'Modo claro':'Modo oscuro'}</button>
+          {isAdm
+            ? <><button className="mob-link" onClick={() => navigate('/admin')}><span className="mob-ico">⚙️</span> Panel admin</button><button className="mob-link" onClick={logout}><span className="mob-ico">🚪</span> Cerrar sesión</button></>
+            : <button className="mob-link" onClick={() => navigate('/login')}><span className="mob-ico">🔐</span> Admin</button>
+          }
         </div>
       </header>
+    </>
+  )
 
-      {/* ── HOME ── */}
-      {view === 'home' && (
-        <main>
-          <section className="hero">
-            <span className="hero-tag">Buenos Aires · Streetwear · Drops Exclusivos</span>
-            <h1 className="hero-h">HYPE<br />DIRECTO<br /><em>A VOS</em></h1>
-            <p className="hero-desc">Sneakers y ropa de edición limitada importada. Precio real en dólar blue, sin vueltas.</p>
-            <div className="hero-links">
-              <a href="https://instagram.com/klow_streetwear" target="_blank" rel="noreferrer" className="btn-hero">Ver en Instagram</a>
-              <a href="https://instagram.com/klow_streetwear" target="_blank" rel="noreferrer" className="hero-ig">@klow_streetwear</a>
+  // ─── Home ──────────────────────────────────────────────────────────────────
+  const HomeView = (
+    <main>
+      <section className="hero">
+        <span className="hero-tag">Buenos Aires · Streetwear · Drops Exclusivos</span>
+        <h1 className="hero-h">HYPE<br/>DIRECTO<br/><em>A VOS</em></h1>
+        <p className="hero-desc">Sneakers y ropa de edición limitada importada. Precio real en dólar blue, sin vueltas.</p>
+        <div className="hero-links">
+          <a href="https://instagram.com/klow_streetwear" target="_blank" rel="noreferrer" className="btn-hero">Ver en Instagram</a>
+          <a href="https://instagram.com/klow_streetwear" target="_blank" rel="noreferrer" className="hero-ig">@klow_streetwear</a>
+        </div>
+      </section>
+
+      <div className="feats"><div className="feats-in">
+        {[['🌎','Importado de USA','Nike, Jordan, Supreme y más.'],['💵','Precio dólar blue','Cotización en tiempo real.'],['✅','100% originales','Prendas verificadas y garantizadas.'],['⚡','Respuesta rápida','Atendemos por WhatsApp al instante.']].map(([ic,t,d]) => (
+          <div key={t} className="feat"><span className="feat-ico">{ic}</span><div><p className="feat-t">{t}</p><p className="feat-d">{d}</p></div></div>
+        ))}
+      </div></div>
+
+      <section className="sec" id="stock">
+        <div className="sec-hd">
+          <h2 className="sec-t">Stock disponible</h2>
+          {prods.length > 0 && <div className="filter-bar">
+            {['all','ropa','sneakers','accesorios'].map(c => (
+              <button key={c} className={`f-btn${cat===c?' on':''}`} onClick={() => setCat(c)}>{c==='all'?'Todo':c}</button>
+            ))}
+          </div>}
+        </div>
+        {vis.length===0
+          ? <div className="empty"><p>Próximamente nuevos drops 🔥</p><a href="https://instagram.com/klow_streetwear" target="_blank" rel="noreferrer">Seguinos en @klow_streetwear →</a></div>
+          : <div className="grid">
+              {vis.map(p => (
+                <a key={p.id} className="card" href={`/producto/${p.id}`} onClick={e => { e.preventDefault(); navigate(`/producto/${p.id}`) }}>
+                  <div className="card-img-w">
+                    {p.images?.[0]
+                      ? <img src={p.images[0]} alt={p.name} className="card-img" onError={e=>e.target.style.display='none'} />
+                      : <div className="card-ph">SIN IMAGEN</div>}
+                    <span className={`stock-b ${inStock(p)?'in':'out'}`}>{inStock(p)?'EN STOCK':'AGOTADO'}</span>
+                  </div>
+                  <div className="card-body">
+                    {p.brand && <p className="card-brand">{p.brand}</p>}
+                    <p className="card-name">{p.name}</p>
+                    {p.description && <p className="card-desc">{p.description}</p>}
+                    {p.sizes && <p className="card-sizes">Talles: {p.sizes}</p>}
+                    <div className="card-prices">
+                      <span className="p-usd">USD ${Number(p.price).toLocaleString('en-US')}</span>
+                      <span className="p-ars">{toARS(p.price)}</span>
+                    </div>
+                    <button className="btn-wa" onClick={e => onWA(p,e)}><WaIcon/> Consultar por WhatsApp</button>
+                  </div>
+                </a>
+              ))}
+            </div>}
+      </section>
+
+      {socials.length>0 && <section className="reels-sec"><div className="reels-in">
+        <div className="sec-hd"><h2 className="sec-t">Contenido · TikTok & Instagram</h2></div>
+        <div className="reels-scroll">
+          {socials.map(s => s.type==='tiktok'
+            ? <div key={s.uid} className="reel-tt"><iframe src={`https://www.tiktok.com/embed/v2/${s.id}?autoplay=1&muted=1&loop=1`} allow="autoplay; clipboard-write; encrypted-media" allowFullScreen scrolling="no" title={`TikTok ${s.id}`}/></div>
+            : <div key={s.uid} className="reel-ig"><blockquote className="instagram-media" data-instgrm-permalink={`https://www.instagram.com/reel/${s.id}/`} data-instgrm-version="14" style={{background:'#0F0F0F',border:'none',margin:0,padding:0,width:'100%'}}/></div>
+          )}
+        </div>
+      </div></section>}
+
+      <section className="enc-sec" id="encargos"><div className="enc-in">
+        <h2 className="enc-title">¿No encontrás<br/><em>lo que buscás?</em></h2>
+        <p className="enc-sub">Completá el formulario y te conseguimos lo que quieras. Importamos desde USA cualquier prenda, zapatilla o accesorio.</p>
+        <div className="enc-grid">
+          <label>Nombre del producto *<input value={encForm.nombre} onChange={e=>setEncForm(f=>({...f,nombre:e.target.value}))} placeholder="Air Jordan 1 Retro High OG"/></label>
+          <label>Tipo de producto *
+            <select value={encForm.tipo} onChange={e=>setEncForm(f=>({...f,tipo:e.target.value}))}>
+              <option value="">Seleccioná...</option>
+              {['Zapatillas','Ropa','Campera','Remera','Pantalón','Accesorio','Otro'].map(o=><option key={o} value={o}>{o}</option>)}
+            </select>
+          </label>
+          <label>Talle *<input value={encForm.talle} onChange={e=>setEncForm(f=>({...f,talle:e.target.value}))} placeholder="42 / M / L"/></label>
+          <label>Color *<input value={encForm.color} onChange={e=>setEncForm(f=>({...f,color:e.target.value}))} placeholder="Blanco, Negro..."/></label>
+          <label className="full">Link de referencia (opcional)<input value={encForm.link} onChange={e=>setEncForm(f=>({...f,link:e.target.value}))} placeholder="https://..."/></label>
+          <label className="full">Página donde lo viste (opcional)<input value={encForm.pagina} onChange={e=>setEncForm(f=>({...f,pagina:e.target.value}))} placeholder="Nike.com, GOAT, StockX..."/></label>
+          <label className="full">Detalles adicionales (opcional)<textarea value={encForm.detalles} onChange={e=>setEncForm(f=>({...f,detalles:e.target.value}))} placeholder="Condición, modelo exacto..."/></label>
+          <div className="field-box">
+            Fotos de referencia (opcional, hasta 3)
+            <div className="enc-photos">
+              {encPhotos.map((img,i) => (
+                <div key={i} className="enc-slot"><img src={img} alt=""/><button type="button" className="img-remove" onClick={()=>setEncPhotos(p=>p.filter((_,j)=>j!==i))}>✕</button></div>
+              ))}
+              {encPhotos.length<3 && <div className="enc-slot enc-slot-empty" onClick={()=>document.getElementById('enc-file').click()}>+</div>}
+              {Array.from({length:Math.max(0,2-encPhotos.length)}).map((_,i)=><div key={`ep${i}`} className="enc-slot enc-slot-empty disabled"/>)}
             </div>
-          </section>
+            <input id="enc-file" type="file" accept="image/*" multiple style={{display:'none'}} onChange={e=>{handleEncPhotos(e.target.files);e.target.value=''}}/>
+            <small>JPG, PNG, WEBP</small>
+          </div>
+        </div>
+        <button className="enc-submit" onClick={submitEncargo}><WaIcon/> Consultar por WhatsApp</button>
+        <p className="enc-note">Te respondemos en menos de 24hs · 📦 Envíos gratis a todo el país{encPhotos.length>0 && <><br/>📸 Las fotos las enviás directamente por WhatsApp</>}</p>
+      </div></section>
+    </main>
+  )
 
-          <div className="feats">
-            <div className="feats-in">
-              {[
-                ['🌎', 'Importado de USA', 'Nike, Jordan, Supreme y más.'],
-                ['💵', 'Precio dólar blue', 'Cotización en tiempo real.'],
-                ['✅', '100% originales', 'Prendas verificadas y garantizadas.'],
-                ['⚡', 'Respuesta rápida', 'Atendemos por WhatsApp al instante.'],
-              ].map(([ic, t, d]) => (
-                <div key={t} className="feat">
-                  <span className="feat-ico">{ic}</span>
-                  <div><p className="feat-t">{t}</p><p className="feat-d">{d}</p></div>
+  // ─── Login ─────────────────────────────────────────────────────────────────
+  const LoginView = (
+    <div className="center-pg">
+      <div className="login-box">
+        <h2 className="login-t">Panel Admin</h2>
+        <p className="login-s">Solo para @klow_streetwear</p>
+        <input type="password" placeholder="Contraseña" value={pass}
+          onChange={e=>{setPass(e.target.value);setPassErr(false)}}
+          onKeyDown={e=>e.key==='Enter'&&login()}
+          className={`f-in${passErr?' err':''}`} autoFocus/>
+        {passErr && <p className="login-err">Contraseña incorrecta</p>}
+        <button className="btn-pri" onClick={login}>Ingresar</button>
+        <button className="btn-gho" onClick={()=>navigate('/')}>Volver</button>
+      </div>
+    </div>
+  )
+
+  // ─── Admin ─────────────────────────────────────────────────────────────────
+  const AdminView = (
+    <main className="admin">
+      <div className="admin-hd">
+        <h2 className="admin-t">Panel de administración</h2>
+        <div className="admin-acts">
+          <button className="btn-set" onClick={()=>setSettF({whatsapp:sett.whatsapp,currentPassword:'',newPassword:''})}>⚙ Config</button>
+          {tab==='prods' && <button className="btn-pri" onClick={openAdd}>+ Producto</button>}
+        </div>
+      </div>
+      <div className="tabs">
+        <button className={`tab${tab==='prods'?' on':''}`} onClick={()=>setTab('prods')}>Productos ({prods.length})</button>
+        <button className={`tab${tab==='social'?' on':''}`} onClick={()=>setTab('social')}>TikTok / IG ({socials.length})</button>
+      </div>
+
+      {tab==='prods' && (prods.length===0
+        ? <div className="empty"><p>No hay productos. Hacé clic en + Producto.</p></div>
+        : <div className="a-list">
+            {prods.map(p=>(
+              <div key={p.id} className="a-row">
+                {p.images?.[0]?<img src={p.images[0]} alt="" className="a-thumb" onError={e=>e.target.style.display='none'}/>:<div className="a-ph">?</div>}
+                <div className="a-info">
+                  <p className="a-name">{p.brand?`${p.brand} — `:''}{p.name}</p>
+                  <p className="a-meta">USD ${p.price} · {toARS(p.price)} · Stock: {p.stock} · {p.sizes||'Sin talles'} · {p.category}</p>
+                </div>
+                <div className="a-btns">
+                  <button className="btn-ed" onClick={()=>openEdit(p)}>Editar</button>
+                  <button className="btn-dl" onClick={()=>delP(p.id)}>Borrar</button>
+                </div>
+              </div>
+            ))}
+          </div>
+      )}
+
+      {tab==='social' && <div>
+        <div style={{display:'flex',gap:'8px',marginBottom:'10px'}}>
+          <input value={socUrl} onChange={e=>{setSocUrl(e.target.value);setSocErr('')}} onKeyDown={e=>e.key==='Enter'&&addSoc()} className="f-in" placeholder="Link de TikTok o Instagram Reel..." style={{flex:1}}/>
+          <button className="btn-pri" onClick={addSoc}>Agregar</button>
+        </div>
+        <p style={{fontSize:'10px',color:'#2A2A2A',fontFamily:'DM Mono',marginBottom:'14px',lineHeight:1.5}}>TikTok: tiktok.com/@usuario/video/ID | Instagram: instagram.com/reel/ID/</p>
+        {socErr && <p style={{fontSize:'11px',color:'#ff4444',marginBottom:'10px'}}>{socErr}</p>}
+        {socials.length===0
+          ? <div className="empty"><p>No hay videos agregados.</p></div>
+          : <div className="a-list">
+              {socials.map(s=>(
+                <div key={s.uid} className="a-row">
+                  <div className="a-ph" style={{fontSize:'20px'}}>{s.type==='tiktok'?'🎵':'📷'}</div>
+                  <div className="a-info"><p className="a-name">{s.type==='tiktok'?'TikTok':'Instagram Reel'}</p><p className="a-meta">{s.url}</p></div>
+                  <div className="a-btns"><button className="btn-dl" onClick={()=>delSoc(s.uid)}>Borrar</button></div>
                 </div>
               ))}
+            </div>}
+      </div>}
+    </main>
+  )
+
+  // ─── Product form modal ────────────────────────────────────────────────────
+  const ProdModal = showPF && (
+    <div className="modal-bg" onClick={e=>e.target===e.currentTarget&&setShowPF(false)}>
+      <div className="modal">
+        <h3 className="modal-t">{editId?'Editar producto':'Nuevo producto'}</h3>
+        <div className="fg">
+          <label>Marca<input value={pForm.brand} onChange={e=>setPForm(f=>({...f,brand:e.target.value}))} placeholder="Nike, Jordan..."/></label>
+          <label>Nombre *<input value={pForm.name} onChange={e=>setPForm(f=>({...f,name:e.target.value}))} placeholder="Air Force 1 Low"/></label>
+          <label>Precio USD *<input type="number" value={pForm.price} onChange={e=>setPForm(f=>({...f,price:e.target.value}))} placeholder="150"/></label>
+          <label>Stock<input type="number" value={pForm.stock} onChange={e=>setPForm(f=>({...f,stock:e.target.value}))} placeholder="1"/></label>
+          <label>Talles<input value={pForm.sizes} onChange={e=>setPForm(f=>({...f,sizes:e.target.value}))} placeholder="S, M, L / 40, 41"/></label>
+          <label>Categoría
+            <select value={pForm.category} onChange={e=>setPForm(f=>({...f,category:e.target.value}))}>
+              <option value="ropa">Ropa</option><option value="sneakers">Sneakers</option><option value="accesorios">Accesorios</option>
+            </select>
+          </label>
+          <div className="field-box">
+            Fotos del producto (hasta 5)
+            <div className="img-grid">
+              {(pForm.images||[]).map((img,i) => (
+                <div key={i} className="img-slot"><img src={img} alt=""/>{i===0&&<span className="img-cover-badge">PORTADA</span>}<button type="button" className="img-remove" onClick={()=>removeImg(i)}>✕</button></div>
+              ))}
+              {(pForm.images||[]).length<5 && <div className="img-slot img-slot-empty" onClick={()=>document.getElementById('img-file').click()}>+</div>}
+              {Array.from({length:Math.max(0,4-(pForm.images||[]).length)}).map((_,i)=><div key={`ph-${i}`} className="img-slot img-slot-empty disabled"/>)}
             </div>
+            <input id="img-file" type="file" accept="image/*" multiple style={{display:'none'}} onChange={e=>{handleImgUpload(e.target.files);e.target.value=''}}/>
+            <small>JPG, PNG, WEBP · La primera es la portada</small>
           </div>
-
-          <section className="sec" id="stock">
-            <div className="sec-hd">
-              <h2 className="sec-t">Stock disponible</h2>
-              {prods.length > 0 && (
-                <div className="filter-bar">
-                  {['all', 'ropa', 'sneakers', 'accesorios'].map(c => (
-                    <button key={c} className={`f-btn${cat === c ? ' on' : ''}`} onClick={() => setCat(c)}>
-                      {c === 'all' ? 'Todo' : c}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {vis.length === 0 ? (
-              <div className="empty">
-                <p>Próximamente nuevos drops 🔥</p>
-                <a href="https://instagram.com/klow_streetwear" target="_blank" rel="noreferrer">Seguinos en @klow_streetwear →</a>
-              </div>
-            ) : (
-              <div className="grid">
-                {vis.map(p => (
-                  <div key={p.id} className="card" onClick={() => openProduct(p)}>
-                    <div className="card-img-w">
-                      {p.images?.[0]
-                        ? <img src={p.images[0]} alt={p.name} className="card-img" onError={e => { e.target.style.display = 'none' }} />
-                        : <div className="card-ph">SIN IMAGEN</div>}
-                      <span className={`stock-b ${inStock(p) ? 'in' : 'out'}`}>{inStock(p) ? 'EN STOCK' : 'AGOTADO'}</span>
-                    </div>
-                    <div className="card-body">
-                      {p.brand && <p className="card-brand">{p.brand}</p>}
-                      <p className="card-name">{p.name}</p>
-                      {p.description && <p className="card-desc">{p.description}</p>}
-                      {p.sizes && <p className="card-sizes">Talles: {p.sizes}</p>}
-                      <div className="card-prices">
-                        <span className="p-usd">USD ${Number(p.price).toLocaleString('en-US')}</span>
-                        <span className="p-ars">{toARS(p.price)}</span>
-                      </div>
-                      <button className="btn-wa" onClick={e => onWA(p, e)}>
-                        <WaIcon /> Consultar por WhatsApp
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          {/* Social / Reels */}
-          {socials.length > 0 && (
-            <section className="reels-sec">
-              <div className="reels-in">
-                <div className="sec-hd">
-                  <h2 className="sec-t">Contenido · TikTok & Instagram</h2>
-                </div>
-                <div className="reels-scroll">
-                  {socials.map(s => (
-                    s.type === 'tiktok' ? (
-                      <div key={s.uid} className="reel-tt">
-                        <iframe
-                          src={`https://www.tiktok.com/embed/v2/${s.id}?autoplay=1&muted=1&loop=1`}
-                          allow="autoplay; clipboard-write; encrypted-media"
-                          allowFullScreen scrolling="no"
-                          title={`TikTok ${s.id}`}
-                        />
-                      </div>
-                    ) : (
-                      <div key={s.uid} className="reel-ig">
-                        <blockquote
-                          className="instagram-media"
-                          data-instgrm-permalink={`https://www.instagram.com/reel/${s.id}/`}
-                          data-instgrm-version="14"
-                          style={{ background: '#0F0F0F', border: 'none', margin: 0, padding: 0, width: '100%' }}
-                        />
-                      </div>
-                    )
-                  ))}
-                </div>
-              </div>
-            </section>
-          )}
-        </main>
-      )}
-
-      {/* ── ENCARGOS ── */}
-      {view === 'home' && (
-        <section className="enc-sec" id="encargos">
-          <div className="enc-in">
-            <div style={{ marginBottom: 32 }}>
-              <h2 className="enc-title">¿No encontrás<br /><em>lo que buscás?</em></h2>
-              <p className="enc-sub">Completá el formulario y te conseguimos lo que quieras. Importamos desde USA cualquier prenda, zapatilla o accesorio.</p>
-            </div>
-            <div className="enc-grid">
-              <label>Nombre del producto *<input value={encForm.nombre} onChange={e => setEncForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Air Jordan 1 Retro High OG" /></label>
-              <label>Tipo de producto *
-                <select value={encForm.tipo} onChange={e => setEncForm(f => ({ ...f, tipo: e.target.value }))}>
-                  <option value="">Seleccioná...</option>
-                  <option value="Zapatillas">Zapatillas</option>
-                  <option value="Ropa">Ropa</option>
-                  <option value="Campera">Campera</option>
-                  <option value="Remera">Remera</option>
-                  <option value="Pantalón">Pantalón</option>
-                  <option value="Accesorio">Accesorio</option>
-                  <option value="Otro">Otro</option>
-                </select>
-              </label>
-              <label>Talle *<input value={encForm.talle} onChange={e => setEncForm(f => ({ ...f, talle: e.target.value }))} placeholder="42 / M / L" /></label>
-              <label>Color *<input value={encForm.color} onChange={e => setEncForm(f => ({ ...f, color: e.target.value }))} placeholder="Blanco, Negro, Rojo..." /></label>
-              <label className="full">Link de la imagen (opcional)<input value={encForm.link} onChange={e => setEncForm(f => ({ ...f, link: e.target.value }))} placeholder="https://..." /></label>
-              <label className="full">Página donde lo viste (opcional)<input value={encForm.pagina} onChange={e => setEncForm(f => ({ ...f, pagina: e.target.value }))} placeholder="Nike.com, GOAT, StockX..." /></label>
-              <label className="full">Detalles adicionales (opcional)<textarea value={encForm.detalles} onChange={e => setEncForm(f => ({ ...f, detalles: e.target.value }))} placeholder="Condición, modelo exacto, con o sin caja..." /></label>
-              <div className="field-box">
-                Fotos de referencia (opcional, hasta 3)
-                <div className="enc-photos">
-                  {encPhotos.map((img, i) => (
-                    <div key={i} className="enc-slot">
-                      <img src={img} alt="" />
-                      <button type="button" className="img-remove" onClick={() => setEncPhotos(p => p.filter((_, j) => j !== i))}>✕</button>
-                    </div>
-                  ))}
-                  {encPhotos.length < 3 && (
-                    <div className="enc-slot enc-slot-empty" onClick={() => document.getElementById('enc-file').click()}>+</div>
-                  )}
-                  {Array.from({ length: Math.max(0, 2 - encPhotos.length) }).map((_, i) => (
-                    <div key={`ep${i}`} className="enc-slot enc-slot-empty disabled" />
-                  ))}
-                </div>
-                <input id="enc-file" type="file" accept="image/*" multiple style={{ display: 'none' }}
-                  onChange={e => { handleEncPhotos(e.target.files); e.target.value = '' }} />
-                <small>JPG, PNG, WEBP</small>
-              </div>
-            </div>
-            <button className="enc-submit" onClick={submitEncargo}>
-              <WaIcon /> Consultar por WhatsApp
-            </button>
-            <p className="enc-note">
-              Te respondemos en menos de 24hs · 📦 Envíos gratis a todo el país
-              {encPhotos.length > 0 && <><br />📸 Las fotos las podés enviar directo por WhatsApp después de abrir el chat</>}
-            </p>
-          </div>
-        </section>
-      )}
-
-      {/* ── PRODUCT DETAIL ── */}
-      {view === 'product' && selProd && (
-        <main className="pdp">
-          <div style={{ gridColumn: '1 / -1' }}>
-            <button className="pdp-back" onClick={() => setView('home')}>← Volver al catálogo</button>
-          </div>
-
-          <div className="pdp-gallery">
-            <div className="pdp-main">
-              {selProd.images?.length
-                ? <img
-                    src={selProd.images[pdpImg]}
-                    alt={selProd.name}
-                    onClick={() => setLightImg({ imgs: selProd.images, idx: pdpImg })}
-                    onError={e => { e.target.style.display = 'none' }}
-                  />
-                : <div className="card-ph" style={{ width: '100%', height: '100%', display: 'flex' }}>SIN IMAGEN</div>}
-            </div>
-            {selProd.images?.length > 1 && (
-              <div className="pdp-thumbs">
-                {selProd.images.map((img, i) => (
-                  <button key={i} className={`pdp-thumb${i === pdpImg ? ' on' : ''}`} onClick={() => setPdpImg(i)}>
-                    <img src={img} alt={`${selProd.name} ${i + 1}`} />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="pdp-info">
-            {selProd.brand && <p className="pdp-brand">{selProd.brand}</p>}
-            <h1 className="pdp-name">{selProd.name}</h1>
-
-            <div className="pdp-prices">
-              <span className="pdp-usd">USD ${Number(selProd.price).toLocaleString('en-US')}</span>
-              <span className="pdp-ars">{toARS(selProd.price)}</span>
-            </div>
-
-            <span className={`pdp-stock stock-b ${inStock(selProd) ? 'in' : 'out'}`}>
-              {inStock(selProd) ? 'EN STOCK' : 'AGOTADO'}
-            </span>
-
-            {selProd.description && <p className="pdp-desc">{selProd.description}</p>}
-
-            {selProd.sizes && (
-              <>
-                <p className="pdp-sizes-label">Talles disponibles</p>
-                <div className="pdp-sizes">
-                  {selProd.sizes.split(/[,/]/).map(s => s.trim()).filter(Boolean).map(s => (
-                    <span key={s} className="size-tag">{s}</span>
-                  ))}
-                </div>
-              </>
-            )}
-
-            <div className="pdp-actions">
-              <button className="btn-wa" onClick={e => onWA(selProd, e)}>
-                <WaIcon /> Consultar por WhatsApp
-              </button>
-              <div className="shipping-banner">
-                <span className="ic">📦</span>
-                Hacemos envíos gratis a todo el país
-              </div>
-            </div>
-          </div>
-        </main>
-      )}
-
-
-      {view === 'login' && (
-        <main className="center-pg">
-          <div className="login-box">
-            <h2 className="login-t">Panel Admin</h2>
-            <p className="login-s">Solo para @klow_streetwear</p>
-            <input type="password" placeholder="Contraseña" value={pass}
-              onChange={e => { setPass(e.target.value); setPassErr(false) }}
-              onKeyDown={e => e.key === 'Enter' && login()}
-              className={`f-in${passErr ? ' err' : ''}`} autoFocus />
-            {passErr && <p className="login-err">Contraseña incorrecta</p>}
-            <button className="btn-pri" onClick={login}>Ingresar</button>
-            <button className="btn-gho" onClick={() => setView('home')}>Volver</button>
-          </div>
-        </main>
-      )}
-
-      {/* ── ADMIN ── */}
-      {view === 'admin' && isAdm && (
-        <main className="admin">
-          <div className="admin-hd">
-            <h2 className="admin-t">Panel de administración</h2>
-            <div className="admin-acts">
-              <button className="btn-set" onClick={() => setSettF({ whatsapp: sett.whatsapp, currentPassword: '', newPassword: '' })}>⚙ Config</button>
-              {tab === 'prods' && <button className="btn-pri" onClick={openAdd}>+ Producto</button>}
-            </div>
-          </div>
-
-          <div className="tabs">
-            <button className={`tab${tab === 'prods' ? ' on' : ''}`} onClick={() => setTab('prods')}>
-              Productos ({prods.length})
-            </button>
-            <button className={`tab${tab === 'social' ? ' on' : ''}`} onClick={() => setTab('social')}>
-              TikTok / IG ({socials.length})
-            </button>
-          </div>
-
-          {/* Products tab */}
-          {tab === 'prods' && (
-            prods.length === 0
-              ? <div className="empty"><p>No hay productos. Hacé clic en + Producto.</p></div>
-              : <div className="a-list">
-                {prods.map(p => (
-                  <div key={p.id} className="a-row">
-                    {p.images?.[0]
-                      ? <img src={p.images[0]} alt="" className="a-thumb" onError={e => { e.target.style.display = 'none' }} />
-                      : <div className="a-ph">?</div>}
-                    <div className="a-info">
-                      <p className="a-name">{p.brand ? `${p.brand} — ` : ''}{p.name}</p>
-                      <p className="a-meta">USD ${p.price} · {toARS(p.price)} · Stock: {p.stock} · {p.sizes || 'Sin talles'} · {p.category}</p>
-                    </div>
-                    <div className="a-btns">
-                      <button className="btn-ed" onClick={() => openEdit(p)}>Editar</button>
-                      <button className="btn-dl" onClick={() => delP(p.id)}>Borrar</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-          )}
-
-          {/* Social tab */}
-          {tab === 'social' && (
-            <div>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
-                <input value={socUrl}
-                  onChange={e => { setSocUrl(e.target.value); setSocErr('') }}
-                  onKeyDown={e => e.key === 'Enter' && addSoc()}
-                  className="f-in" placeholder="Link de TikTok o Instagram Reel..."
-                  style={{ flex: 1 }} />
-                <button className="btn-pri" onClick={addSoc}>Agregar</button>
-              </div>
-              <p style={{ fontSize: '10px', color: '#2A2A2A', fontFamily: 'DM Mono', marginBottom: '14px', lineHeight: 1.5 }}>
-                TikTok: tiktok.com/@usuario/video/ID &nbsp;|&nbsp; Instagram: instagram.com/reel/ID/
-              </p>
-              {socErr && <p style={{ fontSize: '11px', color: '#ff4444', marginBottom: '10px' }}>{socErr}</p>}
-              {socials.length === 0
-                ? <div className="empty"><p>No hay videos agregados.</p></div>
-                : <div className="a-list">
-                  {socials.map(s => (
-                    <div key={s.uid} className="a-row">
-                      <div className="a-ph" style={{ fontSize: '20px' }}>{s.type === 'tiktok' ? '🎵' : '📷'}</div>
-                      <div className="a-info">
-                        <p className="a-name">{s.type === 'tiktok' ? 'TikTok' : 'Instagram Reel'}</p>
-                        <p className="a-meta">{s.url}</p>
-                      </div>
-                      <div className="a-btns">
-                        <button className="btn-dl" onClick={() => delSoc(s.uid)}>Borrar</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>}
-            </div>
-          )}
-        </main>
-      )}
-
-      {/* ── PRODUCT FORM MODAL ── */}
-      {showPF && (
-        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowPF(false)}>
-          <div className="modal">
-            <h3 className="modal-t">{editId ? 'Editar producto' : 'Nuevo producto'}</h3>
-            <div className="fg">
-              <label>Marca<input value={pForm.brand} onChange={e => setPForm(f => ({ ...f, brand: e.target.value }))} placeholder="Nike, Jordan..." /></label>
-              <label>Nombre *<input value={pForm.name} onChange={e => setPForm(f => ({ ...f, name: e.target.value }))} placeholder="Air Force 1 Low" /></label>
-              <label>Precio USD *<input type="number" value={pForm.price} onChange={e => setPForm(f => ({ ...f, price: e.target.value }))} placeholder="150" /></label>
-              <label>Stock (unidades)<input type="number" value={pForm.stock} onChange={e => setPForm(f => ({ ...f, stock: e.target.value }))} placeholder="1" /></label>
-              <label>Talles<input value={pForm.sizes} onChange={e => setPForm(f => ({ ...f, sizes: e.target.value }))} placeholder="S, M, L / 40, 41" /></label>
-              <label>Categoría
-                <select value={pForm.category} onChange={e => setPForm(f => ({ ...f, category: e.target.value }))}>
-                  <option value="ropa">Ropa</option>
-                  <option value="sneakers">Sneakers</option>
-                  <option value="accesorios">Accesorios</option>
-                </select>
-              </label>
-              <div className="field-box">
-                Fotos del producto (hasta 5)
-                <div className="img-grid">
-                  {(pForm.images || []).map((img, i) => (
-                    <div key={i} className="img-slot">
-                      <img src={img} alt="" />
-                      {i === 0 && <span className="img-cover-badge">PORTADA</span>}
-                      <button type="button" className="img-remove" onClick={() => removeImg(i)}>✕</button>
-                    </div>
-                  ))}
-                  {(pForm.images || []).length < 5 && (
-                    <div
-                      className="img-slot img-slot-empty"
-                      onClick={() => document.getElementById('img-file').click()}
-                    >
-                      +
-                    </div>
-                  )}
-                  {Array.from({ length: Math.max(0, 4 - (pForm.images || []).length) }).map((_, i) => (
-                    <div key={`ph-${i}`} className="img-slot img-slot-empty disabled" />
-                  ))}
-                </div>
-                <input id="img-file" type="file" accept="image/*" multiple style={{ display: 'none' }}
-                  onChange={e => { handleImgUpload(e.target.files); e.target.value = '' }} />
-                <small>JPG, PNG, WEBP · Se comprimen automáticamente · La primera es la portada</small>
-              </div>
-              <label className="full">Descripción
-                <textarea value={pForm.description} onChange={e => setPForm(f => ({ ...f, description: e.target.value }))} placeholder="Detalles del producto..." />
-              </label>
-            </div>
-            {blue && pForm.price && (
-              <div className="form-prev">💵 USD ${pForm.price} = {toARS(pForm.price)} ARS (blue ${blue})</div>
-            )}
-            <div className="modal-btns">
-              <button className="btn-gho" onClick={() => setShowPF(false)}>Cancelar</button>
-              <button className="btn-pri" onClick={savePF}>Guardar</button>
-            </div>
-          </div>
+          <label className="full">Descripción<textarea value={pForm.description} onChange={e=>setPForm(f=>({...f,description:e.target.value}))} placeholder="Detalles del producto..."/></label>
         </div>
-      )}
-
-      {/* ── SETTINGS MODAL ── */}
-      {settF && (
-        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setSettF(null)}>
-          <div className="modal">
-            <h3 className="modal-t">Configuración</h3>
-            <div className="fg">
-              <label className="full">
-                Número de WhatsApp
-                <input value={settF.whatsapp} onChange={e => setSettF(s => ({ ...s, whatsapp: e.target.value }))} placeholder="5491123456789" />
-                <small>54 + código de área sin 0 + número sin 15. Ej: 5491165830511</small>
-              </label>
-              <label className="full">
-                Contraseña actual *
-                <input type="password" value={settF.currentPassword} onChange={e => setSettF(s => ({ ...s, currentPassword: e.target.value }))} placeholder="Para confirmar los cambios" />
-                <small>Necesaria para guardar cualquier cambio acá</small>
-              </label>
-              <label className="full">
-                Nueva contraseña (opcional)
-                <input type="password" value={settF.newPassword} onChange={e => setSettF(s => ({ ...s, newPassword: e.target.value }))} placeholder="Dejar vacío para no cambiarla" />
-              </label>
-            </div>
-            <div className="modal-btns">
-              <button className="btn-gho" onClick={() => setSettF(null)}>Cancelar</button>
-              <button className="btn-pri" onClick={async () => {
-                if (!settF.currentPassword) { alert('Ingresá la contraseña actual.'); return }
-                try {
-                  await api('settings', { method: 'PUT', body: JSON.stringify(settF) })
-                  setSett(s => ({ ...s, whatsapp: settF.whatsapp }))
-                  setSettF(null)
-                } catch (err) {
-                  alert(err.message === 'Contraseña actual incorrecta' ? 'Contraseña actual incorrecta.' : 'No se pudo guardar.')
-                }
-              }}>Guardar</button>
-            </div>
-          </div>
+        {blue&&pForm.price&&<div className="form-prev">💵 USD ${pForm.price} = {toARS(pForm.price)} ARS (blue ${blue})</div>}
+        <div className="modal-btns">
+          <button className="btn-gho" onClick={()=>setShowPF(false)}>Cancelar</button>
+          <button className="btn-pri" onClick={savePF}>Guardar</button>
         </div>
-      )}
+      </div>
+    </div>
+  )
 
-      {/* ── LIGHTBOX ── */}
-      {lightImg && (
-        <div className="lightbox" onClick={() => setLightImg(null)}>
-          <button className="lightbox-close" onClick={() => setLightImg(null)}>✕</button>
-          {lightImg.imgs.length > 1 && (
-            <button className="lightbox-nav prev" onClick={e => { e.stopPropagation(); setLightImg(l => ({ ...l, idx: (l.idx - 1 + l.imgs.length) % l.imgs.length })) }}>‹</button>
-          )}
-          <img
-            className="lightbox-img"
-            src={lightImg.imgs[lightImg.idx]}
-            alt=""
-            onClick={e => e.stopPropagation()}
-          />
-          {lightImg.imgs.length > 1 && (
-            <button className="lightbox-nav next" onClick={e => { e.stopPropagation(); setLightImg(l => ({ ...l, idx: (l.idx + 1) % l.imgs.length })) }}>›</button>
-          )}
+  const SettModal = settF && (
+    <div className="modal-bg" onClick={e=>e.target===e.currentTarget&&setSettF(null)}>
+      <div className="modal">
+        <h3 className="modal-t">Configuración</h3>
+        <div className="fg">
+          <label className="full">Contraseña actual *<input type="password" value={settF.currentPassword} onChange={e=>setSettF(s=>({...s,currentPassword:e.target.value}))} placeholder="Para confirmar cambios"/></label>
+          <label className="full">Número de WhatsApp<input value={settF.whatsapp} onChange={e=>setSettF(s=>({...s,whatsapp:e.target.value}))} placeholder="5491165830511"/><small>54 + código de área sin 0 + número sin 15</small></label>
+          <label className="full">Nueva contraseña (opcional)<input type="password" value={settF.newPassword} onChange={e=>setSettF(s=>({...s,newPassword:e.target.value}))} placeholder="Dejar vacío para no cambiarla"/></label>
         </div>
-      )}
+        <div className="modal-btns">
+          <button className="btn-gho" onClick={()=>setSettF(null)}>Cancelar</button>
+          <button className="btn-pri" onClick={async()=>{
+            if (!settF.currentPassword){alert('Ingresá la contraseña actual.');return}
+            try{await api('settings',{method:'PUT',body:JSON.stringify(settF)});setSett(s=>({...s,whatsapp:settF.whatsapp}));setSettF(null)}
+            catch(err){alert(err.message==='Contraseña actual incorrecta'?'Contraseña incorrecta.':'Error al guardar.')}
+          }}>Guardar</button>
+        </div>
+      </div>
+    </div>
+  )
+
+  // ─── Render ────────────────────────────────────────────────────────────────
+  return (
+    <>
+      {Header}
+
+      <Routes>
+        <Route path="/" element={HomeView} />
+        <Route path="/producto/:id" element={<ProductPage prods={prods} blue={blue} sett={sett} />} />
+        <Route path="/admin" element={isAdm ? AdminView : <Navigate to="/login" replace />} />
+        <Route path="/login" element={LoginView} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
 
       <footer className="klow-footer">
-        © 2025 KLOW Streetwear ·{' '}
-        <a href="https://instagram.com/klow_streetwear" target="_blank" rel="noreferrer">@klow_streetwear</a>
+        © 2025 KLOW Streetwear · <a href="https://instagram.com/klow_streetwear" target="_blank" rel="noreferrer">@klow_streetwear</a>
       </footer>
+
+      {ProdModal}
+      {SettModal}
     </>
   )
 }

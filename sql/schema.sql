@@ -1,5 +1,4 @@
--- Ejecutar este script UNA VEZ en el SQL Editor de Neon
--- (Vercel → tu proyecto → Storage → tu base de datos → Open in Neon Console → SQL Editor)
+-- Ejecutar UNA VEZ en el SQL Editor de tu base de datos (Railway o Supabase)
 
 CREATE TABLE IF NOT EXISTS products (
   id          TEXT PRIMARY KEY,
@@ -9,19 +8,18 @@ CREATE TABLE IF NOT EXISTS products (
   sizes       TEXT DEFAULT '',
   stock       INTEGER DEFAULT 0,
   image       TEXT DEFAULT '',
-  images      TEXT DEFAULT '[]',  -- JSON array de hasta 5 imágenes (base64)
+  images      TEXT DEFAULT '[]',
   category    TEXT DEFAULT 'ropa',
   description TEXT DEFAULT '',
   created_at  TIMESTAMP DEFAULT now()
 );
 
--- Si la tabla ya existía de antes, esto agrega la columna nueva sin romper nada
 ALTER TABLE products ADD COLUMN IF NOT EXISTS images TEXT DEFAULT '[]';
 
 CREATE TABLE IF NOT EXISTS socials (
   uid        TEXT PRIMARY KEY,
-  type       TEXT NOT NULL,        -- 'tiktok' | 'instagram'
-  social_id  TEXT NOT NULL,        -- el ID del video/reel
+  type       TEXT NOT NULL,
+  social_id  TEXT NOT NULL,
   url        TEXT NOT NULL,
   created_at TIMESTAMP DEFAULT now()
 );
@@ -31,8 +29,7 @@ CREATE TABLE IF NOT EXISTS settings (
   value TEXT
 );
 
--- Valores iniciales (cambialos después desde el panel admin)
 INSERT INTO settings (key, value) VALUES
   ('whatsapp', '5491165830511'),
-  ('password', 'klow2024')
+  ('password',  'klow2024')
 ON CONFLICT (key) DO NOTHING;

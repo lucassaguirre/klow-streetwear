@@ -1,4 +1,4 @@
--- Ejecutar UNA VEZ en el SQL Editor de tu base de datos (Railway o Supabase)
+-- Se ejecuta solo al iniciar el servidor. Es seguro correrlo muchas veces.
 
 CREATE TABLE IF NOT EXISTS products (
   id          TEXT PRIMARY KEY,
@@ -14,7 +14,15 @@ CREATE TABLE IF NOT EXISTS products (
   created_at  TIMESTAMP DEFAULT now()
 );
 
-ALTER TABLE products ADD COLUMN IF NOT EXISTS images TEXT DEFAULT '[]';
+-- Columnas nuevas (v4)
+ALTER TABLE products ADD COLUMN IF NOT EXISTS images        TEXT DEFAULT '[]';
+ALTER TABLE products ADD COLUMN IF NOT EXISTS slug          TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS availability  TEXT DEFAULT 'inmediata';
+ALTER TABLE products ADD COLUMN IF NOT EXISTS preorder_days TEXT DEFAULT '';
+ALTER TABLE products ADD COLUMN IF NOT EXISTS sold          BOOLEAN DEFAULT false;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS views         INTEGER DEFAULT 0;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS updated_at    TIMESTAMP DEFAULT now();
+CREATE UNIQUE INDEX IF NOT EXISTS products_slug_idx ON products (slug);
 
 CREATE TABLE IF NOT EXISTS socials (
   uid        TEXT PRIMARY KEY,
@@ -31,5 +39,9 @@ CREATE TABLE IF NOT EXISTS settings (
 
 INSERT INTO settings (key, value) VALUES
   ('whatsapp', '5491165830511'),
-  ('password',  'klow2024')
+  ('password', 'klow2024'),
+  ('vip_link', ''),
+  ('meta_pixel_id', ''),
+  ('ga_id', ''),
+  ('preorder_deposit', '50')
 ON CONFLICT (key) DO NOTHING;

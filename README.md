@@ -1,17 +1,21 @@
-# KLOW Streetwear
+# KLOW Streetwear — v4
 
 Web + API + base de datos en **Railway** (un solo servicio Node con Express).
 
-- `npm run build` → compila el frontend (Vite)
-- `npm start` → levanta el servidor (sirve la web y la API `/api/*`)
-- `npm run migrate` → copia los datos de Supabase a Railway
+## Estructura
+- `server.js` → servidor: API, imágenes optimizadas (WebP), vistas previas para WhatsApp/Instagram, sitemap
+- `api/` → endpoints (productos, videos, configuración, login)
+- `src/lib.js` → utilidades, tabla de talles USA→ARG y **textos de Preguntas Frecuentes (FAQ)**
+- `src/styles.js` → estilos
+- `src/components/` → cabecera, pie, tarjetas, etc.
+- `src/pages/` → una página por archivo (Home, Tienda, Producto, Encargos, Vendé, Vendidos, Armá tu look, FAQ, Admin)
+- `sql/schema.sql` → tablas (se aplica sola al iniciar; agrega columnas nuevas sin borrar datos)
 
-## Desarrollo local
-    DATABASE_URL="postgresql://..."  npm run dev:api   # API en :3000
-    npm run dev                                          # Web en :5173
+## Comandos
+    npm run build   # compila el frontend
+    npm start       # levanta el servidor
+    npm run dev:api # API local en :3000 (con DATABASE_URL)
+    npm run dev     # web local en :5173
 
 ## Variable en Railway (servicio web)
     DATABASE_URL = ${{Postgres.DATABASE_URL}}
-
-Las tablas se crean solas al iniciar (sql/schema.sql).
-Contraseña admin por defecto en una base nueva: klow2024

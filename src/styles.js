@@ -561,6 +561,17 @@ html.dark .seg button.on{background:#fff;color:#111}
 
 .f-cols.f4{grid-template-columns:1.4fr 1fr 1fr 1fr}
 .look-head .lt small{display:inline-block}
+/* Selector de marca */
+.brand-picker{position:relative}
+.bp-input{position:relative}
+.bp-ok{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--ok);font-size:16px;pointer-events:none}
+.bp-list{position:absolute;top:100%;left:0;right:0;z-index:20;background:var(--card);border:1px solid var(--line);border-top:2px solid var(--accent);box-shadow:0 12px 30px rgba(0,0,0,.15);max-height:260px;overflow-y:auto}
+.bp-opt{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px;background:none;border:none;border-bottom:1px solid var(--line);cursor:pointer;text-align:left;font-size:14px;color:var(--text);font-family:'Lato',sans-serif}
+.bp-opt:last-child{border-bottom:none}
+.bp-opt small{color:var(--muted);font-size:12px}
+.bp-opt.hi{background:var(--bg2)}
+.bp-opt.add{justify-content:flex-start;color:var(--accent);font-weight:700}
+.bp-opt.add b{font-weight:900}
 /* Admin extras */
 .st-pill{display:inline-block;font-size:11px;font-weight:900;letter-spacing:.5px;text-transform:uppercase;padding:2px 8px;margin-top:4px}
 .st-pill.inm{background:rgba(46,158,62,.12);color:var(--ok)}

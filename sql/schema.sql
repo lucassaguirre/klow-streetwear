@@ -24,6 +24,13 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS views         INTEGER DEFAULT 0;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS updated_at    TIMESTAMP DEFAULT now();
 CREATE UNIQUE INDEX IF NOT EXISTS products_slug_idx ON products (slug);
 
+CREATE TABLE IF NOT EXISTS brands (
+  name       TEXT PRIMARY KEY,
+  created_at TIMESTAMP DEFAULT now()
+);
+-- Una sola marca sin importar mayúsculas: "nike" = "Nike"
+CREATE UNIQUE INDEX IF NOT EXISTS brands_lower_idx ON brands (lower(name));
+
 CREATE TABLE IF NOT EXISTS socials (
   uid        TEXT PRIMARY KEY,
   type       TEXT NOT NULL,

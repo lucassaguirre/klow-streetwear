@@ -1,6 +1,7 @@
 import { sql } from './_db.js'
 import { randomUUID } from 'crypto'
 import { slugify, parseImages, cache } from './_lib.js'
+import { ensureBrand } from './brands.js'
 
 // Columnas livianas (sin las fotos en base64)
 const LIGHT = `id, slug, name, brand, price, sizes, stock, category, description,
@@ -85,6 +86,7 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const b = clean(req.body || {})
       if (!b.name || !b.price) return res.status(400).json({ error: 'Faltan nombre o precio' })
+      b.brand = await ensureBrand(b.brand)
       const id = randomUUID()
       const slug = await uniqueSlug(b.name)
       const images = JSON.stringify(resolveImages(req.body.images || []))
@@ -99,6 +101,7 @@ export default async function handler(req, res) {
       const cur = (await sql`SELECT images, image FROM products WHERE id=${id}`)[0]
       if (!cur) return res.status(404).json({ error: 'No existe' })
       const b = clean(req.body || {})
+      b.brand = await ensureBrand(b.brand)
       // Si solo cambia "vendido" u otros campos sin mandar fotos, se conservan
       const images = Array.isArray(req.body.images)
         ? JSON.stringify(resolveImages(req.body.images, parseImages(cur)))

@@ -74,7 +74,7 @@ export function Grid({ items, newIds }) {
 export function WhatsAppFloat() {
   const { sett } = useStore()
   return (
-    <a className="wa-float" href={`https://wa.me/${waNum(sett.whatsapp)}?text=${encodeURIComponent('Hola KLOW! Tengo una consulta 👋')}`}
+    <a className="wa-float" href={`https://wa.me/${waNum(sett.whatsapp)}?text=${encodeURIComponent('Hola KLOW! Tengo una consulta.')}`}
       target="_blank" rel="noreferrer" aria-label="WhatsApp"
       onClick={() => { try { window.fbq?.('track', 'Contact') } catch {} }}>
       <i className="fa fa-whatsapp" /><span className="wa-tip">¿Consultas? Escribinos</span>

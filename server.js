@@ -8,6 +8,7 @@ import products, { listProducts, findProduct, backfillSlugs, addView } from './a
 import socials from './api/socials.js'
 import settings, { getPublicSettings } from './api/settings.js'
 import login from './api/login.js'
+import brands, { backfillBrands } from './api/brands.js'
 import { parseImages } from './api/_lib.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -26,6 +27,7 @@ app.post('/api/products/:id/view', async (req, res) => {
   try { await addView(req.params.id); res.json({ ok: true }) } catch { res.json({ ok: false }) }
 })
 app.all('/api/socials', socials)
+app.all('/api/brands', brands)
 app.all('/api/settings', settings)
 app.all('/api/login', login)
 app.get('/api/health', async (_req, res) => {
@@ -171,6 +173,7 @@ async function initDb() {
   try {
     await pool.query(fs.readFileSync(path.join(__dirname, 'sql', 'schema.sql'), 'utf8'))
     await backfillSlugs()
+    await backfillBrands()
     console.log('✅ Base de datos lista')
   } catch (e) { console.error('❌ No se pudo inicializar la base:', e.message) }
 }

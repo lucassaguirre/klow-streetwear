@@ -31,6 +31,7 @@ const TABLES = {
   products: { cols: ['id', 'slug', 'name', 'brand', 'price', 'sizes', 'stock', 'image', 'images', 'category', 'description', 'availability', 'preorder_days', 'sold', 'views', 'created_at', 'updated_at'], key: 'id' },
   socials:  { cols: ['uid', 'type', 'social_id', 'url', 'created_at'], key: 'uid' },
   settings: { cols: ['key', 'value'], key: 'key' },
+  brands:   { cols: ['name', 'created_at'], key: 'name' },
 }
 
 async function main() {

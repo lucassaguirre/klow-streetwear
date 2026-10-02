@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useStore } from '../store.jsx'
-import { PageTitle, PhotoPicker } from '../components/ui.jsx'
-import { compressImg, openWA } from '../lib.js'
+import { PageTitle } from '../components/ui.jsx'
+import { openWA } from '../lib.js'
 
 const ESTADOS = ['Nuevo con caja / etiquetas (DS)', 'Nuevo sin caja', 'Usado como nuevo (9-10/10)', 'Usado en buen estado (7-8/10)', 'Usado con detalles']
 
@@ -9,17 +9,14 @@ export default function Vende() {
   const { sett } = useStore()
   const [modo, setModo] = useState('vender')
   const [f, setF] = useState({ marca: '', modelo: '', talle: '', estado: '', precio: '', busca: '', detalles: '' })
-  const [ph, setPh] = useState([])
   const set = k => e => setF(x => ({ ...x, [k]: e.target.value }))
-  const addPh = async files => { const c = await Promise.all(Array.from(files).slice(0, 4 - ph.length).map(x => compressImg(x, 600))); setPh(p => [...p, ...c].slice(0, 4)) }
   const submit = () => {
     if (!f.marca || !f.modelo || !f.talle || !f.estado) { alert('Completá marca, modelo, talle y estado.'); return }
-    const msg = [modo === 'vender' ? 'Hola! Quiero VENDERLES una prenda 💸' : 'Hola! Quiero hacer un CAMBIO 🔄', '',
-      `🏷️ *Marca:* ${f.marca}`, `👟 *Modelo:* ${f.modelo}`, `📏 *Talle:* ${f.talle}`, `✨ *Estado:* ${f.estado}`,
-      f.precio && `💵 *${modo === 'vender' ? 'Precio pretendido' : 'Valor estimado'}:* USD ${f.precio}`,
-      modo === 'cambiar' && f.busca && `🎯 *Lo cambio por:* ${f.busca}`,
-      f.detalles && `📝 *Detalles:* ${f.detalles}`,
-      ph.length > 0 ? `📸 Tengo ${ph.length} foto${ph.length > 1 ? 's' : ''}, te las mando por acá.` : '📸 Te mando fotos por acá.'].filter(Boolean).join('\n')
+    const datos = [`*Marca:* ${f.marca}`, `*Modelo:* ${f.modelo}`, `*Talle:* ${f.talle}`, `*Estado:* ${f.estado}`,
+      f.precio && `*${modo === 'vender' ? 'Precio pretendido' : 'Valor estimado'}:* USD ${f.precio}`,
+      modo === 'cambiar' && f.busca && `*Lo cambio por:* ${f.busca}`,
+      f.detalles && `*Detalles:* ${f.detalles}`].filter(Boolean)
+    const msg = [modo === 'vender' ? 'Hola! Quiero venderles una prenda.' : 'Hola! Quiero hacer un cambio.', '', ...datos, '', 'Ahora te mando las fotos por acá.'].join('\n')
     openWA(sett.whatsapp, msg, { content_name: modo })
   }
   return (
@@ -53,15 +50,10 @@ export default function Vende() {
                 ? <div className="f-field"><label>¿Por qué lo cambiarías?</label><input className="inp" value={f.busca} onChange={set('busca')} placeholder="Algo de tu stock, otro talle..." /></div>
                 : <div className="f-field" />}
               <div className="f-field full"><label>Detalles <small>(opcional)</small></label><textarea className="inp" value={f.detalles} onChange={set('detalles')} placeholder="¿Tiene caja? ¿Ticket de compra? ¿Algún detalle?" /></div>
-              <div className="f-field full">
-                <span className="f-label">Fotos <small>(hasta 4 — frente, suela, etiqueta, caja)</small></span>
-                <PhotoPicker photos={ph} setPhotos={setPh} max={4} id="vende-file" />
-                <input id="vende-file" type="file" accept="image/*" multiple hidden onChange={e => { addPh(e.target.files); e.target.value = '' }} />
-              </div>
             </div>
             <div style={{ marginTop: 26 }}>
               <button className="btn btn-red" onClick={submit}><i className="fa fa-whatsapp" style={{ fontSize: 18 }} /> Enviar por WhatsApp</button>
-              <p className="form-note"><i className="fa fa-info-circle" /> Las fotos las mandás directo en el chat de WhatsApp que se abre.</p>
+              <p className="form-note"><i className="fa fa-info-circle" /> Después de enviar, mandá las fotos (frente, suela, etiqueta y caja) en el chat de WhatsApp que se abre.</p>
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store.jsx'
 import { PageTitle, PhotoPicker, Empty } from '../components/ui.jsx'
+import BrandPicker from '../components/BrandPicker.jsx'
 import { api, compressImg, parseSocial, img, inStock, isPre, sizeLabel, sizesOf } from '../lib.js'
 
 const blank = () => ({ name: '', brand: '', price: '', sizes: '', stock: '1', images: [], category: 'sneakers', description: '', availability: 'inmediata', preorder_days: '', sold: false })
@@ -34,7 +35,7 @@ export function Login() {
 
 export default function Admin() {
   const nav = useNavigate()
-  const { prods, setProds, socials, setSocials, sett, setSett, toARS, fmtBlue, blue, deposit } = useStore()
+  const { prods, setProds, socials, setSocials, sett, setSett, toARS, fmtBlue, blue, deposit, brands, reloadBrands } = useStore()
   const [tab, setTab] = useState('prods')
   const [filter, setFilter] = useState('all')
   const [pf, setPf] = useState(null)       // formulario de producto
@@ -60,7 +61,7 @@ export default function Admin() {
     try {
       if (editId) { const u = await api(`products?id=${editId}`, { method: 'PUT', body: JSON.stringify(pf) }); setProds(ps => ps.map(p => p.id === editId ? u : p)) }
       else { const c = await api('products', { method: 'POST', body: JSON.stringify(pf) }); setProds(ps => [c, ...ps]) }
-      setPf(null)
+      setPf(null); reloadBrands()
     } catch (e) { alert('No se pudo guardar: ' + e.message) }
     setSaving(false)
   }
@@ -70,7 +71,7 @@ export default function Admin() {
   }
   const del = async id => {
     if (!confirm('¿Eliminar este producto? Si ya se vendió, mejor marcalo como vendido para que aparezca en "Vendidos".')) return
-    try { await api(`products?id=${id}`, { method: 'DELETE' }); setProds(ps => ps.filter(p => p.id !== id)) } catch { alert('No se pudo eliminar.') }
+    try { await api(`products?id=${id}`, { method: 'DELETE' }); setProds(ps => ps.filter(p => p.id !== id)); reloadBrands() } catch { alert('No se pudo eliminar.') }
   }
   const addSoc = async () => {
     const p = parseSocial(socUrl); if (!p) { setSocErr('URL no reconocida.'); return }
@@ -82,6 +83,17 @@ export default function Admin() {
     if (!cfg.currentPassword) { alert('Ingresá la contraseña actual.'); return }
     try { await api('settings', { method: 'PUT', body: JSON.stringify(cfg) }); const { currentPassword, newPassword, ...pub } = cfg; void currentPassword; void newPassword; setSett(s => ({ ...s, ...pub })); setCfg(null); alert('Configuración guardada. Si agregaste Pixel o Analytics, recargá la página.') }
     catch (e) { alert(e.message === 'Contraseña actual incorrecta' ? 'La contraseña actual es incorrecta.' : 'No se pudo guardar.') }
+  }
+  const renameBrand = async b => {
+    const to = prompt(`Nuevo nombre para "${b.name}"\n(si ya existe otra marca con ese nombre, se unifican)`, b.name)
+    if (!to || to.trim() === b.name) return
+    try { await api(`brands?name=${encodeURIComponent(b.name)}`, { method: 'PUT', body: JSON.stringify({ name: to }) }); await reloadBrands(); setProds(await api('products')) }
+    catch { alert('No se pudo renombrar.') }
+  }
+  const delBrand = async b => {
+    if (!confirm(`¿Borrar la marca "${b.name}"?`)) return
+    try { await api(`brands?name=${encodeURIComponent(b.name)}`, { method: 'DELETE' }); reloadBrands() }
+    catch (e) { alert(e.message) }
   }
   const F = (k, v) => setPf(f => ({ ...f, [k]: v }))
 
@@ -99,6 +111,7 @@ export default function Admin() {
         <div className="admin-bar">
           <div className="admin-tabs">
             <button className={tab === 'prods' ? 'on' : ''} onClick={() => setTab('prods')}>Productos<span>{prods.length}</span></button>
+            <button className={tab === 'brands' ? 'on' : ''} onClick={() => setTab('brands')}>Marcas<span>{brands.length}</span></button>
             <button className={tab === 'social' ? 'on' : ''} onClick={() => setTab('social')}>TikTok / IG<span>{socials.length}</span></button>
           </div>
           <div className="admin-acts">
@@ -131,6 +144,25 @@ export default function Admin() {
             </table>}
         </>}
 
+        {tab === 'brands' && <>
+          <p className="soc-hint" style={{ margin: '24px 0 18px' }}>Las marcas se crean solas al cargar un producto. Acá podés corregir cómo se escriben (se actualizan todos sus productos) o borrar las que no se usan.</p>
+          {brands.length === 0 ? <Empty title="Sin marcas" text="Se agregan al cargar productos." /> :
+            <table className="tbl">
+              <thead><tr><th>Marca</th><th>Productos</th><th></th></tr></thead>
+              <tbody>{brands.map(b => (
+                <tr key={b.name}>
+                  <td><b style={{ fontWeight: 700 }}>{b.name}</b></td>
+                  <td>{b.count}</td>
+                  <td><div className="t-acts">
+                    <button className="ico-btn" title="Ver en la tienda" onClick={() => nav(`/tienda?marca=${encodeURIComponent(b.name)}`)}><i className="fa fa-eye" /></button>
+                    <button className="ico-btn" title="Renombrar / unificar" onClick={() => renameBrand(b)}><i className="fa fa-pencil" /></button>
+                    <button className="ico-btn del" title={b.count ? 'Tiene productos' : 'Borrar'} onClick={() => delBrand(b)} disabled={b.count > 0} style={b.count ? { opacity: .35, cursor: 'not-allowed' } : {}}><i className="fa fa-trash" /></button>
+                  </div></td>
+                </tr>))}
+              </tbody>
+            </table>}
+        </>}
+
         {tab === 'social' && <>
           <div className="soc-add">
             <input className="inp" value={socUrl} onChange={e => { setSocUrl(e.target.value); setSocErr('') }} onKeyDown={e => e.key === 'Enter' && addSoc()} placeholder="Pegá el link de TikTok o Instagram Reel..." />
@@ -155,7 +187,7 @@ export default function Admin() {
             <div className="modal-head"><h3>{editId ? 'Editar producto' : 'Nuevo producto'}</h3><button onClick={() => setPf(null)}><i className="fa fa-times" /></button></div>
             <div className="modal-body">
               <div className="form-grid">
-                <div className="f-field"><label>Marca</label><input className="inp" value={pf.brand} onChange={e => F('brand', e.target.value)} placeholder="Nike, Jordan..." /></div>
+                <div className="f-field"><label>Marca</label><BrandPicker value={pf.brand} onChange={v => F('brand', v)} /></div>
                 <div className="f-field"><label>Nombre <em>*</em></label><input className="inp" value={pf.name} onChange={e => F('name', e.target.value)} placeholder="Air Force 1 Low" /></div>
                 <div className="f-field"><label>Categoría</label>
                   <select className="inp" value={pf.category} onChange={e => F('category', e.target.value)}><option value="sneakers">Sneakers</option><option value="ropa">Ropa</option><option value="accesorios">Accesorios</option></select></div>

@@ -12,7 +12,7 @@ export default function Look() {
   const [custom, setCustom] = useState('')
   const looks = useMemo(() => buildLooks(available, budget), [available, budget])
   const setB = b => setSp({ presupuesto: String(b) }, { replace: true })
-  const ask = l => openWA(sett.whatsapp, ['Hola! Me interesa este look 🔥', '', ...l.items.map(p => `• ${p.name} — USD $${p.price}`), '', `Total: USD $${l.total}`, '¿Siguen disponibles?'].join('\n'), { content_name: 'look', value: l.total, currency: 'USD' })
+  const ask = l => openWA(sett.whatsapp, ['Hola! Me interesa este look:', '', ...l.items.map(p => `• ${p.name} — USD $${p.price}`), '', `Total: USD $${l.total}`, '¿Siguen disponibles?'].join('\n'), { content_name: 'look', value: l.total, currency: 'USD' })
 
   return (
     <>

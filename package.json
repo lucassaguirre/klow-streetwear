@@ -1,0 +1,25 @@
+{
+  "name": "klow-streetwear",
+  "private": true,
+  "version": "3.0.0",
+  "type": "module",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "dev": "vite",
+    "dev:api": "node --watch server.js",
+    "build": "vite build",
+    "start": "node server.js",
+    "migrate": "node scripts/migrate.js"
+  },
+  "dependencies": {
+    "express": "^4.21.1",
+    "pg": "^8.13.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "vite": "^5.4.2"
+  }
+}

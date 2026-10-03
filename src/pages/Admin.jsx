@@ -35,7 +35,7 @@ export function Login() {
 
 export default function Admin() {
   const nav = useNavigate()
-  const { prods, setProds, socials, setSocials, sett, setSett, toARS, fmtBlue, blue, deposit, brands, reloadBrands } = useStore()
+  const { prods, setProds, socials, setSocials, sett, setSett, toARS, fmtBlue, blue, deposit, brands, reloadBrands, testimonials, setTestimonials } = useStore()
   const [tab, setTab] = useState('prods')
   const [filter, setFilter] = useState('all')
   const [pf, setPf] = useState(null)       // formulario de producto
@@ -44,6 +44,7 @@ export default function Admin() {
   const [cfg, setCfg] = useState(null)
   const [socUrl, setSocUrl] = useState('')
   const [socErr, setSocErr] = useState('')
+  const [upl, setUpl] = useState(null) // progreso de subida de clientes
 
   const shown = prods.filter(p => filter === 'all' ? true : filter === 'sold' ? p.sold : filter === 'pre' ? !p.sold && isPre(p) : !p.sold && !isPre(p))
   const totalViews = prods.reduce((t, p) => t + (p.views || 0), 0)
@@ -95,6 +96,32 @@ export default function Admin() {
     try { await api(`brands?name=${encodeURIComponent(b.name)}`, { method: 'DELETE' }); reloadBrands() }
     catch (e) { alert(e.message) }
   }
+  /* ── Clientes felices ── */
+  const addTestimonials = async files => {
+    const list = Array.from(files); if (!list.length) return
+    for (let k = 0; k < list.length; k++) {
+      setUpl(`Subiendo ${k + 1} de ${list.length}...`)
+      try {
+        const image = await compressImg(list[k], 1600)
+        const t = await api('testimonials', { method: 'POST', body: JSON.stringify({ image, caption: '' }) })
+        setTestimonials(ts => [t, ...ts])
+      } catch { alert(`No se pudo subir ${list[k].name}`) }
+    }
+    setUpl(null)
+  }
+  const saveCaption = async (t, caption) => {
+    if (caption === t.caption) return
+    try { await api(`testimonials?id=${t.id}`, { method: 'PUT', body: JSON.stringify({ caption }) }); setTestimonials(ts => ts.map(x => x.id === t.id ? { ...x, caption } : x)) } catch { alert('No se pudo guardar el texto.') }
+  }
+  const moveT = async (k, d) => {
+    const arr = [...testimonials]; const j = k + d; if (j < 0 || j >= arr.length) return
+    ;[arr[k], arr[j]] = [arr[j], arr[k]]; setTestimonials(arr)
+    try { await api('testimonials', { method: 'PUT', body: JSON.stringify({ order: arr.map(t => t.id) }) }) } catch {}
+  }
+  const delT = async t => {
+    if (!confirm('¿Borrar esta captura?')) return
+    try { await api(`testimonials?id=${t.id}`, { method: 'DELETE' }); setTestimonials(ts => ts.filter(x => x.id !== t.id)) } catch { alert('No se pudo borrar.') }
+  }
   const F = (k, v) => setPf(f => ({ ...f, [k]: v }))
 
   return (
@@ -112,6 +139,7 @@ export default function Admin() {
           <div className="admin-tabs">
             <button className={tab === 'prods' ? 'on' : ''} onClick={() => setTab('prods')}>Productos<span>{prods.length}</span></button>
             <button className={tab === 'brands' ? 'on' : ''} onClick={() => setTab('brands')}>Marcas<span>{brands.length}</span></button>
+            <button className={tab === 'clientes' ? 'on' : ''} onClick={() => setTab('clientes')}>Clientes<span>{testimonials.length}</span></button>
             <button className={tab === 'social' ? 'on' : ''} onClick={() => setTab('social')}>TikTok / IG<span>{socials.length}</span></button>
           </div>
           <div className="admin-acts">
@@ -161,6 +189,30 @@ export default function Admin() {
                 </tr>))}
               </tbody>
             </table>}
+        </>}
+
+        {tab === 'clientes' && <>
+          <div className="cl-admin-top">
+            <p className="soc-hint" style={{ margin: 0 }}>Subí capturas de tus historias destacadas de clientes (guardalas desde Instagram). Podés elegir varias a la vez. Aparecen en el inicio como “Clientes felices”.</p>
+            <button className="btn btn-red btn-sm" onClick={() => document.getElementById('cl-file').click()} disabled={!!upl}>{upl ? <><i className="fa fa-circle-o-notch fa-spin" /> {upl}</> : <><i className="fa fa-plus" /> Subir capturas</>}</button>
+            <input id="cl-file" type="file" accept="image/*" multiple hidden onChange={e => { addTestimonials(e.target.files); e.target.value = '' }} />
+          </div>
+          {testimonials.length === 0 ? <Empty title="Sin capturas" text="Subí las primeras para mostrar la sección en el inicio." /> :
+            <div className="cl-admin">
+              {testimonials.map((t, k) => (
+                <div key={t.id} className="cl-adm-item">
+                  <div className="cl-adm-img"><img src={img(t.image, 300)} alt="" /><span>{k + 1}</span></div>
+                  <input className="inp" defaultValue={t.caption} placeholder="Texto opcional (ej: Juan · Jordan 4)" onBlur={e => saveCaption(t, e.target.value.trim())} />
+                  <div className="t-acts" style={{ justifyContent: 'space-between' }}>
+                    <span style={{ display: 'flex', gap: 6 }}>
+                      <button className="ico-btn" title="Mover antes" onClick={() => moveT(k, -1)} disabled={k === 0}><i className="fa fa-angle-left" /></button>
+                      <button className="ico-btn" title="Mover después" onClick={() => moveT(k, 1)} disabled={k === testimonials.length - 1}><i className="fa fa-angle-right" /></button>
+                    </span>
+                    <button className="ico-btn del" title="Borrar" onClick={() => delT(t)}><i className="fa fa-trash" /></button>
+                  </div>
+                </div>
+              ))}
+            </div>}
         </>}
 
         {tab === 'social' && <>

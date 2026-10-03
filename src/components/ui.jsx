@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useStore } from '../store.jsx'
 import { img, isSold, inStock, isPre, sizesOf, sizeLabel, fmtUSD, openWA, productMsg, waNum } from '../lib.js'
@@ -82,24 +82,71 @@ export function WhatsAppFloat() {
   )
 }
 
-/* Visor de fotos */
+/* ═══ Deslizar con el dedo ═══
+   Horizontal: anterior / siguiente.  Vertical hacia abajo (opcional): cerrar. */
+export function useSwipe({ onPrev, onNext, onDown, canPrev = true, canNext = true }) {
+  const [dx, setDx] = useState(0)
+  const [dy, setDy] = useState(0)
+  const [drag, setDrag] = useState(false)
+  const st = useRef(null)
+  const moved = useRef(false)
+  const onTouchStart = e => {
+    if (e.touches.length > 1) return
+    const t = e.touches[0]
+    st.current = { x: t.clientX, y: t.clientY, t: Date.now(), lock: null, w: e.currentTarget.offsetWidth || window.innerWidth }
+    moved.current = false; setDrag(true)
+  }
+  const onTouchMove = e => {
+    const s = st.current; if (!s || e.touches.length > 1) return
+    const t = e.touches[0]
+    let ddx = t.clientX - s.x; const ddy = t.clientY - s.y
+    if (!s.lock && (Math.abs(ddx) > 8 || Math.abs(ddy) > 8)) s.lock = Math.abs(ddx) > Math.abs(ddy) ? 'x' : 'y'
+    if (s.lock === 'x') {
+      moved.current = true
+      if ((ddx > 0 && !canPrev) || (ddx < 0 && !canNext)) ddx /= 3 // resistencia en los extremos
+      setDx(ddx)
+    } else if (s.lock === 'y' && onDown && ddy > 0) { moved.current = true; setDy(ddy) }
+  }
+  const onTouchEnd = () => {
+    const s = st.current; if (!s) return
+    const v = Math.abs(dx) / Math.max(Date.now() - s.t, 1)
+    if (s.lock === 'x' && (Math.abs(dx) > s.w * 0.18 || v > 0.45)) {
+      if (dx < 0 && canNext) onNext?.(); else if (dx > 0 && canPrev) onPrev?.()
+    }
+    if (s.lock === 'y' && dy > 110) onDown?.()
+    st.current = null; setDx(0); setDy(0); setDrag(false)
+    setTimeout(() => { moved.current = false }, 50)
+  }
+  return { handlers: { onTouchStart, onTouchMove, onTouchEnd, onTouchCancel: onTouchEnd }, dx, dy, drag, moved }
+}
+
+/* Visor de fotos a pantalla completa (deslizable) */
 export function Lightbox({ imgs, start = 0, onClose }) {
   const [i, setI] = useState(start)
+  const n = imgs.length
+  const prev = () => setI(x => Math.max(x - 1, 0))
+  const next = () => setI(x => Math.min(x + 1, n - 1))
+  const sw = useSwipe({ onPrev: prev, onNext: next, onDown: onClose, canPrev: i > 0, canNext: i < n - 1 })
   useEffect(() => {
-    const h = e => {
-      if (e.key === 'Escape') onClose()
-      if (e.key === 'ArrowRight') setI(x => (x + 1) % imgs.length)
-      if (e.key === 'ArrowLeft') setI(x => (x - 1 + imgs.length) % imgs.length)
-    }
-    window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h)
-  }, [imgs.length, onClose])
+    const h = e => { if (e.key === 'Escape') onClose(); if (e.key === 'ArrowRight') next(); if (e.key === 'ArrowLeft') prev() }
+    window.addEventListener('keydown', h)
+    const ov = document.body.style.overflow; document.body.style.overflow = 'hidden'
+    return () => { window.removeEventListener('keydown', h); document.body.style.overflow = ov }
+  }, [n, onClose]) // eslint-disable-line
+  const fade = 1 - Math.min(sw.dy / 500, 0.6)
   return (
-    <div className="lightbox" onClick={onClose}>
+    <div className="lightbox" style={{ background: `rgba(0,0,0,${fade})` }} {...sw.handlers}>
+      <div className="lb-track" style={{ transform: `translate3d(calc(${-i * 100}% + ${sw.dx}px), ${sw.dy}px, 0) scale(${1 - Math.min(sw.dy / 1500, 0.15)})`, transition: sw.drag ? 'none' : 'transform .32s cubic-bezier(.2,.8,.2,1)' }}>
+        {imgs.map((src, k) => (
+          <div key={k} className="lb-slide" onClick={e => { if (e.target === e.currentTarget && !sw.moved.current) onClose() }}>
+            {Math.abs(k - i) <= 1 && <img src={img(src, 1600)} alt="" draggable="false" />}
+          </div>
+        ))}
+      </div>
       <button className="lb-btn lb-close" onClick={onClose}><i className="fa fa-times" /></button>
-      {imgs.length > 1 && <button className="lb-btn lb-prev" onClick={e => { e.stopPropagation(); setI(x => (x - 1 + imgs.length) % imgs.length) }}><i className="fa fa-angle-left" /></button>}
-      <img src={img(imgs[i], 1600)} alt="" onClick={e => e.stopPropagation()} />
-      {imgs.length > 1 && <button className="lb-btn lb-next" onClick={e => { e.stopPropagation(); setI(x => (x + 1) % imgs.length) }}><i className="fa fa-angle-right" /></button>}
-      {imgs.length > 1 && <span className="lb-count">{i + 1} / {imgs.length}</span>}
+      {n > 1 && i > 0 && <button className="lb-btn lb-prev" onClick={prev}><i className="fa fa-angle-left" /></button>}
+      {n > 1 && i < n - 1 && <button className="lb-btn lb-next" onClick={next}><i className="fa fa-angle-right" /></button>}
+      {n > 1 && <div className="lb-dots">{imgs.map((_, k) => <span key={k} className={k === i ? 'on' : ''} />)}</div>}
     </div>
   )
 }

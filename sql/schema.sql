@@ -31,6 +31,15 @@ CREATE TABLE IF NOT EXISTS brands (
 -- Una sola marca sin importar mayúsculas: "nike" = "Nike"
 CREATE UNIQUE INDEX IF NOT EXISTS brands_lower_idx ON brands (lower(name));
 
+-- Clientes felices (capturas de historias destacadas)
+CREATE TABLE IF NOT EXISTS testimonials (
+  id         TEXT PRIMARY KEY,
+  image      TEXT NOT NULL,
+  caption    TEXT DEFAULT '',
+  position   INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS socials (
   uid        TEXT PRIMARY KEY,
   type       TEXT NOT NULL,

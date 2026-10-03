@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store.jsx'
 import { Hero } from '../components/Layout.jsx'
+import { ClientesFelices } from '../components/Stories.jsx'
 import { Grid, useFadeIn, Empty } from '../components/ui.jsx'
 import { img, inStock, sizesOf, sizeLabel, fmtUSD, isPre, openWA, productMsg, FAQ, CATS } from '../lib.js'
 
@@ -17,7 +18,8 @@ export default function Home() {
     const list = available.filter(p => p.category === k)
     return { k, l, count: list.length, bg: list.find(p => p.images?.[0])?.images[0] }
   })
-  useFadeIn([available.length, socials.length])
+  const { testimonials } = useStore()
+  useFadeIn([available.length, socials.length, testimonials.length])
 
   return (
     <main>
@@ -62,9 +64,11 @@ export default function Home() {
         </div>
       </section>
 
+      <ClientesFelices />
+
       {/* Drop destacado */}
       {featured && (
-        <section className="section-medium bk-gray" style={{ marginTop: 100 }}>
+        <section className="section-medium bk-gray" style={{ marginTop: testimonials.length ? 0 : 100 }}>
           <div className="container p-event">
             <div className="ev-thumb fade" onClick={() => nav(`/producto/${featured.slug}`)}>
               {featured.images?.[0] ? <img src={img(featured.images[0], 900)} alt={featured.name} /> : <div className="p-ph" style={{ fontSize: 90 }}>K</div>}

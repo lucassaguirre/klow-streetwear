@@ -32,6 +32,7 @@ const TABLES = {
   socials:  { cols: ['uid', 'type', 'social_id', 'url', 'created_at'], key: 'uid' },
   settings: { cols: ['key', 'value'], key: 'key' },
   brands:   { cols: ['name', 'created_at'], key: 'name' },
+  testimonials: { cols: ['id', 'image', 'caption', 'position', 'created_at'], key: 'id' },
 }
 
 async function main() {

@@ -9,6 +9,7 @@ import socials from './api/socials.js'
 import settings, { getPublicSettings } from './api/settings.js'
 import login from './api/login.js'
 import brands, { backfillBrands } from './api/brands.js'
+import testimonials, { getTestimonialImage } from './api/testimonials.js'
 import { parseImages } from './api/_lib.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -28,6 +29,7 @@ app.post('/api/products/:id/view', async (req, res) => {
 })
 app.all('/api/socials', socials)
 app.all('/api/brands', brands)
+app.all('/api/testimonials', testimonials)
 app.all('/api/settings', settings)
 app.all('/api/login', login)
 app.get('/api/health', async (_req, res) => {
@@ -48,20 +50,19 @@ function cachePut(k, buf) {
     const [fk, fv] = imgCache.entries().next().value; imgCache.delete(fk); imgBytes -= fv.length
   }
 }
-app.get('/img/:id/:file', async (req, res) => {
+async function serveImage(req, res, keyPrefix, loadSrc, maxDefault = 1400) {
   try {
     const m = req.params.file.match(/^(\d+)(?:\.(jpg|webp))?$/)
     if (!m) return res.status(404).end()
     const n = Number(m[1]), fmt = m[2] === 'jpg' ? 'jpeg' : 'webp'
-    const w = Math.min(Math.max(parseInt(req.query.w, 10) || 1400, 80), 1600)
-    const key = `${req.params.id}:${n}:${w}:${fmt}:${req.query.v || ''}`
+    const w = Math.min(Math.max(parseInt(req.query.w, 10) || maxDefault, 80), 1600)
+    const key = `${keyPrefix}:${req.params.id}:${n}:${w}:${fmt}:${req.query.v || ''}`
     let buf = imgCache.get(key)
     if (!buf) {
-      const row = (await sql`SELECT images, image FROM products WHERE id=${req.params.id}`)[0]
-      const src = row && parseImages(row)[n]
+      const src = await loadSrc(req.params.id, n)
       if (!src) return res.status(404).end()
       const raw = Buffer.from(src.split(',')[1] || '', 'base64')
-      let pipe = sharp(raw).rotate().resize({ width: w, withoutEnlargement: true })
+      const pipe = sharp(raw).rotate().resize({ width: w, withoutEnlargement: true })
       buf = fmt === 'jpeg' ? await pipe.jpeg({ quality: 80, mozjpeg: true }).toBuffer() : await pipe.webp({ quality: 78 }).toBuffer()
       cachePut(key, buf)
     }
@@ -69,7 +70,14 @@ app.get('/img/:id/:file', async (req, res) => {
     res.setHeader('Cache-Control', req.query.v ? 'public, max-age=31536000, immutable' : 'public, max-age=3600')
     res.end(buf)
   } catch (e) { console.error('img', e.message); res.status(500).end() }
-})
+}
+// Fotos de productos
+app.get('/img/:id/:file', (req, res) => serveImage(req, res, 'p', async (id, n) => {
+  const row = (await sql`SELECT images, image FROM products WHERE id=${id}`)[0]
+  return row && parseImages(row)[n]
+}))
+// Capturas de clientes (una por registro → /timg/:id)
+app.get('/timg/:id', (req, res) => { req.params.file = '0'; return serveImage(req, res, 't', id => getTestimonialImage(id), 1080) })
 
 /* ───────── SEO: robots + sitemap ───────── */
 app.get('/robots.txt', (req, res) => {

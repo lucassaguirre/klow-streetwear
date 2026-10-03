@@ -9,6 +9,7 @@ export function StoreProvider({ children }) {
   const [loaded, setLoaded] = useState(false)
   const [socials, setSocials] = useState([])
   const [brands, setBrands] = useState([])
+  const [testimonials, setTestimonials] = useState([])
   const [sett, setSett] = useState({ whatsapp: WA_DEFAULT, vip_link: '', preorder_deposit: '50' })
   const [blue, setBlue] = useState(null)
   const [blueBuy, setBlueBuy] = useState(null)
@@ -22,6 +23,7 @@ export function StoreProvider({ children }) {
     reloadProds()
     reloadBrands()
     api('socials').then(setSocials).catch(() => {})
+    api('testimonials').then(setTestimonials).catch(() => {})
     api('settings').then(s => { setSett(x => ({ ...x, ...s })); loadAnalytics(s) }).catch(() => {})
     const fb = async () => {
       try { const r = await fetch('https://api.bluelytics.com.ar/v2/latest'); const d = await r.json(); setBlue(d.blue.value_sell); setBlueBuy(d.blue.value_buy) } catch {}
@@ -43,8 +45,8 @@ export function StoreProvider({ children }) {
     const toARS = usd => blue ? '$ ' + Math.round(Number(usd) * blue).toLocaleString('es-AR') : '—'
     const fmtBlue = v => v ? '$' + Number(v).toLocaleString('es-AR') : '...'
     const deposit = Number(sett.preorder_deposit) || 50
-    return { prods, setProds, loaded, reloadProds, brands, setBrands, reloadBrands, available, sold, socials, setSocials, sett, setSett, blue, blueBuy, toARS, fmtBlue, deposit, isAdm, setIsAdm, dark, setDark }
-  }, [prods, loaded, reloadProds, brands, reloadBrands, socials, sett, blue, blueBuy, isAdm, dark])
+    return { prods, setProds, loaded, reloadProds, brands, setBrands, reloadBrands, testimonials, setTestimonials, available, sold, socials, setSocials, sett, setSett, blue, blueBuy, toARS, fmtBlue, deposit, isAdm, setIsAdm, dark, setDark }
+  }, [prods, loaded, reloadProds, brands, reloadBrands, testimonials, socials, sett, blue, blueBuy, isAdm, dark])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

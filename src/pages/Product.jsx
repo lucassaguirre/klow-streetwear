@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useStore } from '../store.jsx'
-import { PageTitle, Grid, Lightbox, Empty, Loading, useFadeIn } from '../components/ui.jsx'
+import { PageTitle, Grid, Lightbox, Empty, Loading, useFadeIn, useSwipe } from '../components/ui.jsx'
 import { api, img, catLabel, sizesOf, sizeInfo, inStock, isPre, isSold, fmtUSD, openWA, productMsg, track } from '../lib.js'
 
 export default function Product() {
@@ -13,6 +13,8 @@ export default function Product() {
   const [lb, setLb] = useState(false)
   const [tab, setTab] = useState('desc')
   const p = prods.find(x => x.slug === slug || x.id === slug)
+  const nImgs = p?.images?.length || 0
+  const sw = useSwipe({ onPrev: () => setI(x => Math.max(x - 1, 0)), onNext: () => setI(x => Math.min(x + 1, nImgs - 1)), canPrev: i > 0, canNext: i < nImgs - 1 })
 
   useEffect(() => { setI(0); setSize(''); setTab('desc'); window.scrollTo(0, 0) }, [slug])
   useEffect(() => {
@@ -38,11 +40,17 @@ export default function Product() {
       <section className="shop-single">
         <div className="container ss-grid">
           <div>
-            <div className="ss-main" onClick={() => imgs.length && setLb(true)}>
-              {imgs[i] ? <img src={img(imgs[i], 1000)} alt={p.name} /> : <div className="p-ph">K</div>}
+            <div className="ss-main" {...sw.handlers} onClick={() => { if (!sw.moved.current && imgs.length) setLb(true) }}>
+              {imgs.length ? (
+                <div className="ss-track" style={{ transform: `translate3d(calc(${-i * 100}% + ${sw.dx}px),0,0)`, transition: sw.drag ? 'none' : 'transform .32s cubic-bezier(.2,.8,.2,1)' }}>
+                  {imgs.map((src, k) => <div key={k}>{Math.abs(k - i) <= 1 && <img src={img(src, 1000)} alt={p.name} draggable="false" />}</div>)}
+                </div>
+              ) : <div className="p-ph">K</div>}
               {sold && <div className="sold-stamp"><span>VENDIDO</span></div>}
+              {imgs.length > 1 && <span className="ss-count">{i + 1} / {imgs.length}</span>}
               {imgs.length > 0 && <span className="ss-zoom"><i className="fa fa-search-plus" /></span>}
             </div>
+            {imgs.length > 1 && <div className="ss-dots">{imgs.map((_, k) => <span key={k} className={k === i ? 'on' : ''} />)}</div>}
             {imgs.length > 1 && <div className="ss-thumbs">{imgs.map((src, k) => <button key={k} className={k === i ? 'on' : ''} onClick={() => setI(k)}><img src={img(src, 200)} alt="" /></button>)}</div>}
             <div className="ss-share">
               Compartir:
